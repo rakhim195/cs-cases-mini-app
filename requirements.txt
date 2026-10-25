@@ -1,0 +1,9 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+sqlalchemy==2.0.36
+aiosqlite==0.20.0
+aiogram==3.16.0
+# SQLAlchemy async requires greenlet, but its conditional marker skips
+# Windows (platform_machine == "AMD64"), so it is pinned explicitly here.
+greenlet==3.1.1
