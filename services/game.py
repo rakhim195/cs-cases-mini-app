@@ -13,7 +13,12 @@ from models import InventoryItem, Referral, User
 from services import rng
 from services.catalog import CaseNotFoundError, get_case, list_cases
 
-REEL_LENGTH = 30
+# Tail after the winner (REEL_LENGTH - winner index) stays >= 25 items.
+REEL_LENGTH = 101
+REEL_WINNER_MIN_INDEX = 70
+REEL_WINNER_MAX_INDEX = 75
+NEAR_MISS_BUDGET_RARITIES = frozenset({"Mil-Spec", "Restricted"})
+NEAR_MISS_ULTRA_RARITIES = frozenset({"Covert", "Special"})
 REFERRAL_PAYOUT_RATE = 0.05
 
 
@@ -141,6 +146,45 @@ async def _pay_referrer(
     return payout
 
 
+def _build_reel(
+    case_items: tuple[Mapping[str, Any], ...],
+    winner: Mapping[str, Any],
+    case_id: str,
+) -> tuple[list[dict[str, Any]], int]:
+    """Assemble the decorative reel with the winner buried mid-strip.
+
+    The winner lands at a random index in [70, 75] so the strip keeps
+    scrolling well past the needle — no empty void after the stop. When the
+    winner is a budget skin, an ultra-rare pool item is placed directly
+    adjacent to it for the near-miss thrill.
+    """
+    winner_index = rng.uniform_int(
+        REEL_WINNER_MIN_INDEX, REEL_WINNER_MAX_INDEX
+    )
+    reel = [
+        _pool_display(rng.uniform_choice(case_items), case_id)
+        for _ in range(REEL_LENGTH)
+    ]
+
+    near_miss_slot: int | None = None
+    if winner["rarity"] in NEAR_MISS_BUDGET_RARITIES:
+        ultra_pool = [
+            item
+            for item in case_items
+            if item["rarity"] in NEAR_MISS_ULTRA_RARITIES
+        ]
+        if ultra_pool:
+            # Land the tease just behind the winner: it slides past the
+            # needle a heartbeat before the result card locks in.
+            near_miss_slot = winner_index - 1
+            reel[near_miss_slot] = _pool_display(
+                rng.uniform_choice(ultra_pool), case_id
+            )
+
+    reel[winner_index] = winner
+    return reel, winner_index
+
+
 async def open_case(
     session: AsyncSession, user_id: int, case_id: str
 ) -> dict[str, Any]:
@@ -196,16 +240,13 @@ async def open_case(
         is_stat_trak=is_stat_trak,
         price=price,
     )
-    reel = [
-        _pool_display(rng.uniform_choice(case.items), case.id)
-        for _ in range(REEL_LENGTH - 1)
-    ]
-    reel.append(winner)
+    reel, winner_index = _build_reel(case.items, winner, case.id)
 
     await session.commit()
     return {
         "winner": winner,
         "reel": reel,
+        "winner_index": winner_index,
         "new_balance": user.balance,
         "referral_payout": referral_payout,
     }

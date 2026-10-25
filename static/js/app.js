@@ -29,7 +29,7 @@
     'Well-Worn': ['Поношенное', 'WW'],
     'Battle-Scarred': ['Закалённое в боях', 'BS'],
   };
-  const REEL_MS = 6500;
+  const REEL_MS = 7000;
   const REEL_CARD_W = 120;
   const REEL_GAP = 10;
   const REFERRAL_LINK_TEXT = 'Заходи и забирай 25 бесплатных попыток!';
@@ -213,17 +213,46 @@
       card.type = 'button';
       card.className = 'case-card';
       card.style.setProperty('--accent', kase.accent || RARITY_COLORS['Mil-Spec']);
-      const img = skinImage(kase, '256fx256f', 'case-img', kase.name);
+
+      (kase.tags || []).slice(0, 2).forEach((tag, tagIndex) => {
+        const chip = document.createElement('span');
+        chip.className = 'case-tag t' + tagIndex;
+        chip.textContent = tag;
+        card.appendChild(chip);
+      });
+
+      const visual = document.createElement('div');
+      visual.className = 'case-visual';
+      // Priciest pool item looms behind the opened lid — its glow spills out.
+      const topItem = kase.items.reduce(
+        (best, it) => (it.base_price > best.base_price ? it : best),
+        kase.items[0]
+      );
+      const ghost = document.createElement('div');
+      ghost.className = 'case-ghost';
+      ghost.appendChild(skinImage(topItem, '256fx256f', '', topItem.name));
+      const beams = document.createElement('div');
+      beams.className = 'case-beams';
+      visual.appendChild(beams);
+      visual.appendChild(ghost);
+      visual.appendChild(skinImage(kase, '256fx256f', 'case-img', kase.name));
+      card.appendChild(visual);
+
       const name = document.createElement('div');
       name.className = 'case-name';
-      name.textContent = kase.name;
+      name.textContent = kase.hype_title || kase.name;
+      card.appendChild(name);
+      if (kase.hype_title && kase.hype_title !== kase.name) {
+        const real = document.createElement('div');
+        real.className = 'case-real';
+        real.textContent = kase.name;
+        card.appendChild(real);
+      }
       const price = document.createElement('div');
       price.className = 'case-price' + (kase.price === 0 ? ' free' : '');
       price.innerHTML = kase.price === 0
         ? 'Бесплатно &middot; 24ч'
         : escapeHtml(money(kase.price));
-      card.appendChild(img);
-      card.appendChild(name);
       card.appendChild(price);
       card.addEventListener('click', () => openCaseModal(kase));
       grid.appendChild(card);
@@ -328,7 +357,9 @@
   function buildReelItem(item, isWinner) {
     const color = RARITY_COLORS[item.rarity] || '#8b93a7';
     const el = document.createElement('div');
-    el.className = 'reel-item' + (isWinner ? ' win' : '');
+    el.className = 'reel-item' +
+      (isWinner ? ' win' : '') +
+      (isElite(item.rarity) ? ' ultra' : '');
     el.style.setProperty('--rc', color);
     el.appendChild(skinImage(item, '256fx256f', '', item.name));
     const name = document.createElement('span');
@@ -349,18 +380,24 @@
     }
   }
 
-  function spinReel(reel) {
+  function spinReel(reel, winnerIndex) {
     return new Promise((resolve) => {
       const track = $('reel-track');
       const windowEl = $('reel-window');
+      const targetIndex =
+        typeof winnerIndex === 'number' && winnerIndex >= 0 && winnerIndex < reel.length
+          ? winnerIndex
+          : reel.length - 1;
       track.innerHTML = '';
       reel.forEach((item, index) => {
-        track.appendChild(buildReelItem(item, index === reel.length - 1));
+        track.appendChild(buildReelItem(item, index === targetIndex));
       });
 
-      const targetIndex = reel.length - 1;
-      const jitter = (Math.random() - 0.5) * (REEL_CARD_W * 0.5);
+      // Jitter up to ~±40px so the winner never lands dead-center to the
+      // exact pixel — the stop feels like physics, not a script.
+      const jitter = (Math.random() - 0.5) * (REEL_CARD_W * 0.66);
       const winnerCenter =
+        REEL_GAP + // track's left padding
         targetIndex * (REEL_CARD_W + REEL_GAP) + REEL_CARD_W / 2 + jitter;
       const distance = winnerCenter - windowEl.clientWidth / 2;
 
@@ -399,7 +436,7 @@
         method: 'POST',
         body: JSON.stringify({ user_id: USER_ID, case_id: kase.id }),
       });
-      await spinReel(result.reel);
+      await spinReel(result.reel, result.winner_index);
       hapticSuccess();
       animateBalance(result.new_balance);
       showResult(result.winner);

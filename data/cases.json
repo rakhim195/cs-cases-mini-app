@@ -3,6 +3,10 @@
     {
       "id": "daily_free",
       "name": "Оружейный кейс CS:GO",
+      "hype_title": "СТАРТОВЫЙ ДРОП",
+      "tags": [
+        "ХАЛЯВА 24Ч"
+      ],
       "price": 0,
       "cooldown_hours": 24,
       "accent": "#4b69ff",
@@ -101,6 +105,10 @@
     {
       "id": "fracture",
       "name": "Кейс «Разлом»",
+      "hype_title": "РАЗЛОМ • ПЕРВАЯ КРОВЬ",
+      "tags": [
+        "ХИТ"
+      ],
       "price": 150,
       "cooldown_hours": null,
       "accent": "#8847ff",
@@ -320,6 +328,10 @@
     {
       "id": "dreams_nightmares",
       "name": "Кейс «Грёзы и кошмары»",
+      "hype_title": "КОШМАРЫ СБЫВАЮТСЯ",
+      "tags": [
+        "ТОП"
+      ],
       "price": 250,
       "cooldown_hours": null,
       "accent": "#d32ce6",
@@ -517,6 +529,10 @@
     {
       "id": "revolution",
       "name": "Кейс «Революция»",
+      "hype_title": "РЕВОЛЮЦИЯ АДРЕНАЛИНА",
+      "tags": [
+        "ХИТ"
+      ],
       "price": 350,
       "cooldown_hours": null,
       "accent": "#eb4b4b",
@@ -714,6 +730,11 @@
     {
       "id": "classified_covert",
       "name": "Кейс «Спектр 2»",
+      "hype_title": "ДЛЯ МАЖОРОВ",
+      "tags": [
+        "ТОП",
+        "НОЖИ"
+      ],
       "price": 750,
       "cooldown_hours": null,
       "accent": "#d32ce6",
@@ -845,6 +866,10 @@
     {
       "id": "gloves_knives",
       "name": "Перчаточный кейс",
+      "hype_title": "ЗОЛОТАЯ ЖИЛА • НОЖИ & ПЕРЧАТКИ",
+      "tags": [
+        "НОЖИ"
+      ],
       "price": 1500,
       "cooldown_hours": null,
       "accent": "#ffb900",

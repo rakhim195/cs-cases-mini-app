@@ -29,6 +29,8 @@ class Case:
     items: tuple[Mapping[str, Any], ...]
     name_en: str | None = None
     image: str | None = None
+    hype_title: str | None = None
+    tags: tuple[str, ...] = ()
 
     @property
     def is_free(self) -> bool:
@@ -73,6 +75,8 @@ def _catalog() -> tuple[dict[str, Case], tuple[Case, ...]]:
             items=tuple(entry["items"]),
             name_en=entry.get("name_en"),
             image=entry.get("image"),
+            hype_title=entry.get("hype_title"),
+            tags=tuple(entry.get("tags", ())),
         )
         _validate(case)
         ordered.append(case)
@@ -99,6 +103,8 @@ def case_public(case: Case) -> dict[str, Any]:
         "id": case.id,
         "name": case.name,
         "name_en": case.name_en,
+        "hype_title": case.hype_title,
+        "tags": list(case.tags),
         "price": case.price,
         "cooldown_hours": case.cooldown_hours,
         "accent": case.accent,

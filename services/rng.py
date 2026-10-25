@@ -40,6 +40,11 @@ def uniform_choice(items: Sequence[Any]) -> Any:
     return items[secrets.randbelow(len(items))]
 
 
+def uniform_int(low: int, high: int) -> int:
+    """Uniform integer in [low, high] (inclusive) from the OS CSPRNG."""
+    return low + secrets.randbelow(high - low + 1)
+
+
 def roll_wear(min_float: float = 0.0, max_float: float = 1.0) -> tuple[str, float]:
     """Roll a skin float inside its own [min_float, max_float] range and
     map it onto the CS:GO wear bands."""

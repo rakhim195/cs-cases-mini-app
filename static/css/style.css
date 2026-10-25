@@ -170,40 +170,132 @@ button { font-family: inherit; }
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 18px 12px 14px;
-  border: 1px solid var(--line);
+  gap: 4px;
+  padding: 24px 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line));
   border-radius: var(--radius);
   background:
-    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.05), transparent 62%),
+    radial-gradient(130% 100% at 50% 0%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 62%),
     linear-gradient(180deg, var(--panel-2), var(--panel));
-  box-shadow: var(--shadow-card);
+  box-shadow:
+    0 12px 30px rgba(2, 6, 18, 0.6),
+    0 0 26px color-mix(in srgb, var(--accent) 14%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
   cursor: pointer;
   overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transform: perspective(720px) rotateX(3deg);
+  transform-style: preserve-3d;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .case-card::after {
   content: '';
   position: absolute;
-  left: 14%;
-  right: 14%;
+  left: 12%;
+  right: 12%;
   top: 0;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0.9;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+/* Diagonal shine sweeping across the card every few seconds. */
+.case-card::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -70%;
+  width: 46%;
+  z-index: 4;
+  transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.09), transparent);
+  animation: case-shine 4.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes case-shine {
+  0%, 55% { left: -70%; }
+  85%, 100% { left: 135%; }
 }
 .case-card:hover, .case-card:active {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
-  box-shadow: 0 14px 34px rgba(2, 6, 18, 0.65), 0 0 26px color-mix(in srgb, var(--accent) 22%, transparent);
+  transform: perspective(720px) rotateX(0deg) translateY(-4px) scale(1.02);
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--line));
+  box-shadow:
+    0 18px 40px rgba(2, 6, 18, 0.7),
+    0 0 38px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.case-tag {
+  position: absolute;
+  top: 10px;
+  left: -1px;
+  z-index: 5;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+  padding: 3px 9px 3px 8px;
+  border-radius: 4px 10px 10px 4px;
+  background: linear-gradient(135deg, #ffe27a, var(--brand-2));
+  box-shadow: 0 4px 12px rgba(255, 138, 0, 0.45);
+}
+.case-tag.t1 {
+  top: 33px;
+  color: #fff;
+  background: linear-gradient(135deg, #ff5f6d, #d31c3a);
+  box-shadow: 0 4px 12px rgba(211, 28, 58, 0.45);
+}
+
+.case-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 108px;
+  margin: 2px 0 6px;
+  transform: rotateX(6deg);
+  transform-style: preserve-3d;
+}
+/* Accent light rays rotating behind the open lid. */
+.case-beams {
+  position: absolute;
+  inset: -46%;
+  z-index: 0;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg 14deg,
+    color-mix(in srgb, var(--accent) 15%, transparent) 14deg 28deg
+  );
+  -webkit-mask-image: radial-gradient(closest-side, #000 28%, transparent 72%);
+  mask-image: radial-gradient(closest-side, #000 28%, transparent 72%);
+  animation: beams-spin 16s linear infinite;
+}
+@keyframes beams-spin { to { transform: rotate(1turn); } }
+/* The jackpot skin ghosting behind the case, aura spilling out. */
+.case-ghost {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 18px var(--accent)) drop-shadow(0 0 6px var(--accent));
+  transform: scale(1.42) rotate(-11deg);
+}
+.case-ghost img {
+  width: 150%;
+  height: 118px;
+  object-fit: contain;
 }
 
 .case-img {
-  width: 100%;
-  height: 92px;
+  position: relative;
+  z-index: 2;
+  width: 90%;
+  height: 84px;
   object-fit: contain;
-  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.65));
   animation: float 3.6s ease-in-out infinite;
 }
 @keyframes float {
@@ -213,8 +305,9 @@ button { font-family: inherit; }
 
 .case-name {
   font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 13.5px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
   text-align: center;
   min-height: 2.6em;
   display: -webkit-box;
@@ -223,17 +316,30 @@ button { font-family: inherit; }
   overflow: hidden;
 }
 
+.case-real {
+  margin-top: -4px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .case-price {
+  margin-top: 2px;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 14px;
   color: var(--brand);
+  text-shadow: 0 0 14px rgba(255, 194, 51, 0.35);
 }
 .case-price.free {
   color: var(--ok);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-size: 12.5px;
+  text-shadow: 0 0 14px rgba(63, 208, 127, 0.35);
 }
 
 /* ---------- Tab bar ---------- */
@@ -717,6 +823,10 @@ button { font-family: inherit; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.reel-item.ultra {
+  border-color: color-mix(in srgb, var(--rc) 70%, var(--line));
+  box-shadow: 0 0 20px color-mix(in srgb, var(--rc) 32%, transparent);
 }
 .reel-item.win {
   border-color: var(--brand);
