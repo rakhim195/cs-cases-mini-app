@@ -104,6 +104,9 @@ def _pool_display(
         "base_price": item["base_price"],
         "case_id": case_id,
     }
+    for key in ("name_en", "image", "min_float", "max_float"):
+        if key in item:
+            payload[key] = item[key]
     payload.update(extra)
     return payload
 
@@ -130,7 +133,9 @@ async def open_case(
         user.balance = round(user.balance - case.price, 2)
 
     pool_item = rng.weighted_pick(case.items)
-    wear_name, wear_float = rng.roll_wear()
+    wear_name, wear_float = rng.roll_wear(
+        pool_item.get("min_float", 0.0), pool_item.get("max_float", 1.0)
+    )
     is_stat_trak = rng.roll_stat_trak()
     price = rng.compute_price(pool_item["base_price"], is_stat_trak)
 

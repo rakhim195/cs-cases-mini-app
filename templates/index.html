@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>CS Case Battles — Unboxing</title>
+  <title>CS Case Battle — открытие кейсов</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -12,31 +15,74 @@
     <div class="user-chip">
       <div class="avatar" id="user-avatar">?</div>
       <div class="user-meta">
-        <span class="user-name" id="user-name">Player</span>
-        <span class="inv-count"><b id="inv-count">0</b> items in vault</span>
+        <span class="user-name" id="user-name">Игрок</span>
+        <span class="user-sub">Баланс: <b id="balance-top">…</b></span>
       </div>
     </div>
     <div class="balance-pill" id="balance-pill">···</div>
   </header>
 
-  <main class="screen">
-    <h1 class="screen-title">CASES</h1>
-    <div class="case-grid" id="case-grid"></div>
+  <main class="app">
+    <section class="screen" id="screen-cases">
+      <div class="screen-head">
+        <h1 class="screen-title">Кейсы</h1>
+        <span class="screen-count" id="cases-count"></span>
+      </div>
+      <div class="case-grid" id="case-grid"></div>
+    </section>
+
+    <section class="screen hidden" id="screen-collection">
+      <div class="screen-head">
+        <h1 class="screen-title">Моя коллекция</h1>
+        <span class="screen-count" id="inv-count">0 предметов</span>
+      </div>
+      <div class="vault-summary" id="vault-summary">
+        <div class="vault-total">
+          <span class="vault-label">Общая стоимость</span>
+          <span class="vault-value" id="vault-total">0 ₽</span>
+        </div>
+        <div class="vault-hint">Продавай скины, чтобы пополнить баланс</div>
+      </div>
+      <div class="inv-grid" id="inv-grid"></div>
+      <div class="empty-state hidden" id="inv-empty">
+        <div class="empty-icon">📦</div>
+        <div class="empty-title">Коллекция пуста</div>
+        <div class="empty-sub">Открой первый кейс, чтобы получить скин</div>
+        <button class="btn-primary" type="button" id="btn-go-cases">К кейсам</button>
+      </div>
+    </section>
   </main>
+
+  <nav class="tabbar">
+    <button class="tab active" type="button" data-view="cases">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 7v10l8 4 8-4V7l-8-4Zm0 2.2L17.6 8 12 10.8 6.4 8 12 5.2ZM6 9.9l5 2.5v6.6l-5-2.5V9.9Zm7 9.1v-6.6l5-2.5v6.6l-5 2.5Z" fill="currentColor"/></svg>
+      <span>Кейсы</span>
+    </button>
+    <button class="tab" type="button" data-view="collection">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M8 7V6a4 4 0 1 1 8 0v1h2.5A1.5 1.5 0 0 1 20 8.5v10A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-10A1.5 1.5 0 0 1 5.5 7H8Zm2 0h4V6a2 2 0 1 0-4 0v1Z" fill="currentColor"/></svg>
+      <span>Моя коллекция</span>
+      <b class="tab-badge" id="tab-inv-badge">0</b>
+    </button>
+  </nav>
 
   <div class="modal-backdrop hidden" id="case-modal">
     <div class="modal case-modal">
       <button class="modal-close" type="button" data-close="case-modal">✕</button>
-      <div class="case-title" id="case-modal-name"></div>
-      <div class="case-sub" id="case-modal-sub"></div>
+      <div class="case-hero">
+        <img class="case-hero-img" id="case-modal-img" alt="">
+        <div class="case-hero-meta">
+          <div class="case-title" id="case-modal-name"></div>
+          <div class="case-sub" id="case-modal-sub"></div>
+        </div>
+      </div>
       <div class="pool-list" id="case-pool"></div>
-      <button class="btn-primary" type="button" id="btn-open-case"></button>
+      <button class="btn-primary btn-block" type="button" id="btn-open-case"></button>
     </div>
   </div>
 
   <div class="modal-backdrop hidden" id="reel-modal">
     <div class="modal reel-modal">
-      <h2 id="reel-title">Opening…</h2>
+      <h2 class="reel-title" id="reel-title">Открываем…</h2>
       <div class="reel-window" id="reel-window">
         <div class="reel-needle"></div>
         <div class="reel-track" id="reel-track"></div>
@@ -46,11 +92,11 @@
 
   <div class="modal-backdrop hidden" id="result-modal">
     <div class="modal result-modal">
-      <h2 class="result-title">You got</h2>
+      <h2 class="result-title">Вам выпало</h2>
       <div class="drop-card" id="drop-card"></div>
       <div class="result-actions">
         <button class="btn-primary" type="button" id="btn-sell"></button>
-        <button class="btn-ghost" type="button" id="btn-keep">Keep in Vault</button>
+        <button class="btn-ghost" type="button" id="btn-keep">Оставить в коллекции</button>
       </div>
     </div>
   </div>

@@ -27,6 +27,8 @@ class Case:
     cooldown_hours: int | None
     accent: str
     items: tuple[Mapping[str, Any], ...]
+    name_en: str | None = None
+    image: str | None = None
 
     @property
     def is_free(self) -> bool:
@@ -69,6 +71,8 @@ def _catalog() -> tuple[dict[str, Case], tuple[Case, ...]]:
             cooldown_hours=entry.get("cooldown_hours"),
             accent=entry.get("accent", "#4b69ff"),
             items=tuple(entry["items"]),
+            name_en=entry.get("name_en"),
+            image=entry.get("image"),
         )
         _validate(case)
         ordered.append(case)
@@ -94,8 +98,10 @@ def case_public(case: Case) -> dict[str, Any]:
     return {
         "id": case.id,
         "name": case.name,
+        "name_en": case.name_en,
         "price": case.price,
         "cooldown_hours": case.cooldown_hours,
         "accent": case.accent,
+        "image": case.image,
         "items": [dict(item) for item in case.items],
     }

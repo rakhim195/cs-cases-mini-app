@@ -40,15 +40,22 @@ def uniform_choice(items: Sequence[Any]) -> Any:
     return items[secrets.randbelow(len(items))]
 
 
-def roll_wear() -> tuple[str, float]:
-    """Roll a skin float in [0, 1) and map it onto its CS:GO wear band."""
-    value = secure_uniform()
+def roll_wear(min_float: float = 0.0, max_float: float = 1.0) -> tuple[str, float]:
+    """Roll a skin float inside its own [min_float, max_float] range and
+    map it onto the CS:GO wear bands."""
+    lo = max(0.0, float(min_float))
+    hi = min(1.0, float(max_float))
+    if hi <= lo:
+        hi, lo = 1.0, 0.0
+    value = lo + secure_uniform() * (hi - lo)
+    range_cap = round(hi - 0.0001, 4)
     for name, _low, high in WEAR_BANDS:
         if value < high:
             # Clamp so a value like 0.37996 does not round to 0.38 and
-            # escape its own band (0.15 <= x < 0.38).
-            return name, min(round(value, 4), round(high - 0.0001, 4))
-    return WEAR_BANDS[-1][0], round(value, 4)
+            # escape its own band (0.15 <= x < 0.38), and so rounding
+            # cannot push the float past the skin's own max_float.
+            return name, max(lo, min(round(value, 4), range_cap))
+    return WEAR_BANDS[-1][0], min(round(value, 4), range_cap)
 
 
 def roll_stat_trak() -> bool:

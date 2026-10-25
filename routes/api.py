@@ -49,7 +49,7 @@ async def open_case(
         return await game.open_case(session, body.user_id, body.case_id)
     except CaseNotFoundError:
         raise HTTPException(
-            status_code=404, detail=f"Case '{body.case_id}' not found"
+            status_code=404, detail=f"Кейс «{body.case_id}» не найден"
         ) from None
     except game.CooldownError as exc:
         remaining_minutes = max(
@@ -62,14 +62,14 @@ async def open_case(
         raise HTTPException(
             status_code=429,
             detail=(
-                "Daily free case is on cooldown — available again in "
-                f"{remaining_minutes // 60}h {remaining_minutes % 60:02d}m"
+                "Бесплатный кейс будет доступен через "
+                f"{remaining_minutes // 60} ч {remaining_minutes % 60:02d} мин"
             ),
         ) from None
     except game.InsufficientFundsError as exc:
         raise HTTPException(
             status_code=400,
-            detail=f"Insufficient balance: case costs {exc.price:.0f} RUB",
+            detail=f"Недостаточно средств: цена кейса {exc.price:.0f} ₽",
         ) from None
 
 
@@ -81,9 +81,9 @@ async def sell_item(
     try:
         return await game.sell_item(session, body.user_id, body.item_id)
     except game.ItemNotFoundError:
-        raise HTTPException(status_code=404, detail="Item not found") from None
+        raise HTTPException(status_code=404, detail="Предмет не найден") from None
     except game.ItemAlreadySoldError:
-        raise HTTPException(status_code=409, detail="Item already sold") from None
+        raise HTTPException(status_code=409, detail="Предмет уже продан") from None
 
 
 @router.get("/inventory/{user_id}")
