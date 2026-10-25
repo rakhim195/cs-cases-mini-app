@@ -594,13 +594,24 @@
       ') в @KeysikAppBot! Открой свой кейс по ссылке: ' + referralLink();
   }
 
+  // Same-origin proxy URL: Telegram renders these story-media bytes reliably,
+  // and the canvas never taints when drawing from it.
+  function proxiedImageUrl(item, size) {
+    const src = cdn(item.image, size || '512fx512f');
+    if (!src || src === FALLBACK_IMG) return null;
+    return location.origin + '/api/proxy-image?url=' + encodeURIComponent(src);
+  }
+
   async function shareItemToStory(item) {
     if (!item) return;
     hapticImpact();
     const caption = storyCaption(item);
-    if (tg && typeof tg.shareToStory === 'function') {
+    const proxied = proxiedImageUrl(item);
+    if (tg && typeof tg.shareToStory === 'function' && proxied) {
       try {
-        tg.shareToStory({ media: cdn(item.image, '360fx360f'), text: caption });
+        // Raw Steam CDN URLs showed up as BLACK stories on Telegram; the
+        // backend proxy serves the same bytes from a clean https origin.
+        tg.shareToStory({ media: proxied, text: caption });
         return;
       } catch (err) { /* fall through to the canvas card */ }
     }
@@ -627,7 +638,33 @@
     return (weight || 700) + ' ' + px + 'px "Chakra Petch", Inter, sans-serif';
   }
 
-  // 720x1280 portrait card: rarity glow, skin render, price, bot CTA.
+  function drawVectorSkinFallback(ctx, cx, cy, color) {
+    // Stylized vector placeholder when the render cannot be drawn.
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i += 1) {
+      const a = Math.PI / 6 + (i * Math.PI) / 3;
+      const x = cx + Math.cos(a) * 150;
+      const y = cy + Math.sin(a) * 95;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = storyFont(64, 700);
+    ctx.textAlign = 'center';
+    ctx.fillText('CS', cx, cy + 22);
+    ctx.restore();
+  }
+
+  // 720x1280 portrait story card (spec layers: bg gradient, rarity glow,
+  // render, name/wear/ST, gold price, watermark banner).
   function buildStoryCard(item) {
     return new Promise((resolve, reject) => {
       const W = 720;
@@ -638,16 +675,21 @@
       const ctx = canvas.getContext('2d');
       const color = RARITY_COLORS[item.rarity] || '#8b93a7';
 
+      // 1) Dark gradient background.
       const bg = ctx.createLinearGradient(0, 0, 0, H);
-      bg.addColorStop(0, '#141d38');
-      bg.addColorStop(1, '#070b16');
+      bg.addColorStop(0, '#0d1117');
+      bg.addColorStop(1, '#161b22');
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, W, H);
-      const glow = ctx.createRadialGradient(W / 2, 500, 40, W / 2, 500, 430);
-      glow.addColorStop(0, color + '59');
+
+      // 2) Rarity glow circle behind the skin.
+      const glow = ctx.createRadialGradient(W / 2, 500, 30, W / 2, 500, 360);
+      glow.addColorStop(0, color + '66');
       glow.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = glow;
-      ctx.fillRect(0, 0, W, H);
+      ctx.beginPath();
+      ctx.arc(W / 2, 500, 360, 0, Math.PI * 2);
+      ctx.fill();
 
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffc233';
@@ -658,12 +700,21 @@
       ctx.fillText('выбил в @KeysikAppBot', W / 2, 200);
 
       const finish = (skin) => {
+        // 3) Weapon image (or the vector fallback when CORS/taint bites).
         if (skin && skin.width) {
-          const k = Math.min(560 / skin.width, 380 / skin.height);
-          const w = skin.width * k;
-          const h = skin.height * k;
-          ctx.drawImage(skin, (W - w) / 2, 500 - h / 2, w, h);
+          try {
+            const k = Math.min(560 / skin.width, 380 / skin.height);
+            const w = skin.width * k;
+            const h = skin.height * k;
+            ctx.drawImage(skin, (W - w) / 2, 500 - h / 2, w, h);
+          } catch (err) {
+            drawVectorSkinFallback(ctx, W / 2, 500, color);
+          }
+        } else {
+          drawVectorSkinFallback(ctx, W / 2, 500, color);
         }
+
+        // 4) Name + wear + StatTrak badge.
         const name = (item.is_stat_trak ? 'StatTrak™ ' : '') + item.name;
         ctx.fillStyle = '#ffffff';
         let size = 42;
@@ -675,30 +726,38 @@
         ctx.fillText(name, W / 2, 742);
         ctx.fillStyle = color;
         ctx.font = storyFont(26, 700);
-        ctx.fillText((RARITY_RU[item.rarity] || item.rarity).toUpperCase(), W / 2, 796);
-        ctx.fillStyle = '#ffc233';
-        ctx.font = storyFont(76);
-        ctx.fillText(money(item.price), W / 2, 906);
+        ctx.fillText((RARITY_RU[item.rarity] || item.rarity).toUpperCase(), W / 2, 790);
+        ctx.fillStyle = '#8b93a7';
+        ctx.font = '600 26px Inter, sans-serif';
+        const wearLine = item.wear
+          ? wearRu(item.wear) + (item.is_stat_trak ? ' • StatTrak™' : '')
+          : '';
+        ctx.fillText(wearLine, W / 2, 828);
 
-        const ctaX = W / 2 - 250;
-        const ctaY = 986;
-        const cta = ctx.createLinearGradient(ctaX, ctaY, ctaX + 500, ctaY + 96);
-        cta.addColorStop(0, '#ffe27a');
-        cta.addColorStop(1, '#ff8a00');
-        ctx.fillStyle = cta;
-        if (ctx.roundRect) {
-          ctx.beginPath();
-          ctx.roundRect(ctaX, ctaY, 500, 96, 48);
-          ctx.fill();
-        } else {
-          ctx.fillRect(ctaX, ctaY, 500, 96);
-        }
-        ctx.fillStyle = '#241300';
-        ctx.font = storyFont(36);
-        ctx.fillText('ОТКРОЙ СВОЙ КЕЙС', W / 2, ctaY + 60);
+        // 5) Price in big gold font.
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = storyFont(76);
+        ctx.fillText(money(item.price), W / 2, 922);
+
+        // 6) Watermark banner with the bot link.
+        const bannerY = 1060;
+        const banner = ctx.createLinearGradient(0, bannerY, W, H);
+        banner.addColorStop(0, 'rgba(255, 194, 51, 0.08)');
+        banner.addColorStop(1, 'rgba(255, 194, 51, 0.18)');
+        ctx.fillStyle = banner;
+        ctx.fillRect(0, bannerY, W, H - bannerY);
+        ctx.strokeStyle = 'rgba(255, 194, 51, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, bannerY);
+        ctx.lineTo(W, bannerY);
+        ctx.stroke();
+        ctx.fillStyle = '#ffc233';
+        ctx.font = storyFont(34);
+        ctx.fillText('Выбивай скины в @KeysikAppBot', W / 2, bannerY + 74);
         ctx.fillStyle = '#8b93a7';
         ctx.font = '600 28px Inter, sans-serif';
-        ctx.fillText('t.me/' + (state.botUsername || 'KeysikAppBot'), W / 2, 1160);
+        ctx.fillText('t.me/' + (state.botUsername || 'KeysikAppBot'), W / 2, bannerY + 128);
 
         try {
           resolve(canvas.toDataURL('image/png'));
@@ -708,10 +767,12 @@
       };
 
       const skin = new Image();
+      // crossOrigin MUST be assigned before src for the CORS path to work.
       skin.crossOrigin = 'anonymous';
       skin.onload = () => finish(skin);
       skin.onerror = () => finish(null);
-      skin.src = cdn(item.image, '512fx512f');
+      const proxied = proxiedImageUrl(item);
+      skin.src = proxied || cdn(item.image, '512fx512f');
     });
   }
 
@@ -825,16 +886,18 @@
       storyBtn.className = 'btn-inv-story';
       storyBtn.title = 'Поделиться в Stories';
       storyBtn.textContent = '📸';
-      storyBtn.addEventListener('click', () => {
+      storyBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
         shareItemToStory(Object.assign({}, item, {
-          image: (catalogSkin(item.skin_id) || {}).image,
+          image: (catalogSkin(item.skin_id) || {}).image || item.image,
         }));
       });
       const sell = document.createElement('button');
       sell.type = 'button';
       sell.className = 'btn-sell';
       sell.textContent = 'Продать';
-      sell.addEventListener('click', () => {
+      sell.addEventListener('click', (event) => {
+        event.stopPropagation();
         sell.disabled = true;
         card.classList.add('sold-out');
         sellItem(item.item_id, item.price, async () => {
@@ -848,8 +911,71 @@
       body.appendChild(meta);
       card.appendChild(body);
 
+      card.addEventListener('click', () => openSkinModal(item));
       grid.appendChild(card);
     });
+  }
+
+  /* ---------- Skin inspect modal ---------- */
+
+  const WEAR_FLOAT_BANDS = {
+    'Factory New': [0.0, 0.07],
+    'Minimal Wear': [0.07, 0.15],
+    'Field-Tested': [0.15, 0.38],
+    'Well-Worn': [0.38, 0.45],
+    'Battle-Scarred': [0.45, 1.0],
+  };
+
+  // The DB stores only the wear band, so derive a stable display float from
+  // the item id, clamped into the skin's own float range.
+  function derivedFloat(item) {
+    const meta = skinImageIndex.get(item.skin_id) || {};
+    const band = WEAR_FLOAT_BANDS[item.wear] || [0, 1];
+    const lo = Math.max(band[0], Number(meta.min_float) || 0);
+    const hi = Math.min(band[1], Number(meta.max_float) || 1);
+    const seed = ((item.item_id * 2654435761) % 10000) / 10000;
+    const value = lo + seed * (hi - lo);
+    return Math.min(value, hi - 0.0001).toFixed(4);
+  }
+
+  let inspectItem = null;
+
+  function openSkinModal(item) {
+    inspectItem = item;
+    hapticImpact();
+    const color = RARITY_COLORS[item.rarity] || '#8b93a7';
+    const root = $('skin-inspect');
+    root.style.setProperty('--rc', color);
+
+    const visual = $('si-visual');
+    visual.innerHTML = '';
+    visual.appendChild(skinImage(item, '512fx512f', 'si-img', item.name));
+
+    $('si-rarity').textContent = rarityRuLabel(item);
+    $('si-rarity').style.color = color;
+    $('si-rarity').style.borderColor = color;
+    $('si-name').textContent = item.name;
+    $('si-wear').textContent = wearRu(item.wear) + ' • float ' + derivedFloat(item);
+    $('si-st').classList.toggle('hidden', !item.is_stat_trak);
+    $('si-price').textContent = money(item.price);
+
+    $('si-story').onclick = () => {
+      shareItemToStory(Object.assign({}, item, {
+        image: (catalogSkin(item.skin_id) || {}).image || item.image,
+      }));
+    };
+    const sellBtn = $('si-sell');
+    sellBtn.textContent = 'Продать за ' + money(item.price);
+    sellBtn.disabled = false;
+    sellBtn.onclick = () => {
+      sellBtn.disabled = true;
+      sellItem(item.item_id, item.price, async () => {
+        hideModal('skin-modal');
+        state.inventory = state.inventory.filter((el) => el.item_id !== item.item_id);
+        renderInventory();
+      });
+    };
+    showModal('skin-modal');
   }
 
   $('btn-go-cases').addEventListener('click', () => switchView('cases'));

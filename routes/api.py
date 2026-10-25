@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
+import urllib.request
 from datetime import datetime, timezone
 from math import ceil
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +19,18 @@ from services import battle, daily, game, upgrade
 from services.catalog import CaseNotFoundError, case_public, list_cases
 
 router = APIRouter(prefix="/api", tags=["gameplay"])
+
+# Steam/Telegram image hosts the proxy is allowed to fetch (SSRF guard).
+ALLOWED_IMAGE_HOSTS = frozenset(
+    {
+        "community.akamai.steamstatic.com",
+        "community.cloudflare.steamstatic.com",
+        "cdn.akamai.steamstatic.com",
+        "cdn.cloudflare.steamstatic.com",
+        "cdn.steamcommunity.com",
+    }
+)
+PROXY_MAX_BYTES = 8 * 1024 * 1024
 
 
 class OpenCaseRequest(BaseModel):
@@ -206,6 +222,47 @@ async def get_battle_state(
         return await battle.battle_state(session, battle_id)
     except battle.BattleNotFoundError:
         raise HTTPException(status_code=404, detail="Битва не найдена") from None
+
+
+@router.get("/proxy-image")
+async def proxy_image(url: str) -> Response:
+    """Same-origin image proxy for canvas/story use.
+
+    Telegram's story renderer and the canvas API both misbehave with raw
+    Steam CDN URLs (black media / tainted canvas). Serving the bytes from
+    our own origin with a clean Content-Type fixes both.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or (parsed.hostname or "") not in ALLOWED_IMAGE_HOSTS:
+        raise HTTPException(status_code=400, detail="Хост изображения не разрешён")
+
+    def fetch() -> tuple[bytes, str]:
+        request = urllib.request.Request(
+            url, headers={"User-Agent": "Mozilla/5.0 (compatible; CaseBattleBot)"}
+        )
+        with urllib.request.urlopen(request, timeout=12) as resp:
+            data = resp.read(PROXY_MAX_BYTES + 1)
+        if len(data) > PROXY_MAX_BYTES:
+            raise ValueError("image too large")
+        return data, resp.headers.get_content_type()
+
+    try:
+        data, content_type = await asyncio.to_thread(fetch)
+    except ValueError:
+        raise HTTPException(status_code=413, detail="Изображение слишком большое") from None
+    except Exception:
+        raise HTTPException(status_code=502, detail="Не удалось загрузить изображение") from None
+
+    if not content_type.startswith("image/"):
+        content_type = "image/png"
+    return Response(
+        content=data,
+        media_type=content_type,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "public, max-age=86400",
+        },
+    )
 
 
 @router.get("/daily/status/{user_id}")
