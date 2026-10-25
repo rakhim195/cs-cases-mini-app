@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.database import get_session
-from services import game, upgrade
+from services import daily, game, upgrade
 from services.catalog import CaseNotFoundError, case_public, list_cases
 
 router = APIRouter(prefix="/api", tags=["gameplay"])
@@ -26,6 +26,10 @@ class UpgradeRequest(BaseModel):
     user_id: int
     selected_item_id: int
     target_skin_id: str
+
+
+class DailyClaimRequest(BaseModel):
+    user_id: int
 
 
 class SellItemRequest(BaseModel):
@@ -129,4 +133,36 @@ async def upgrade_skin(
     except upgrade.UpgradeTargetNotFoundError:
         raise HTTPException(
             status_code=404, detail="Целевой скин не найден"
+        ) from None
+
+
+@router.get("/daily/status/{user_id}")
+async def get_daily_status(
+    user_id: int, session: AsyncSession = Depends(get_session)
+) -> dict:
+    """Streak progress, next-claim countdown and the 7-day reward track."""
+    return await daily.daily_status(session, user_id)
+
+
+@router.post("/daily/claim")
+async def claim_daily(
+    body: DailyClaimRequest, session: AsyncSession = Depends(get_session)
+) -> dict:
+    """Claim today's streak reward (coins, or a free case on day 7)."""
+    try:
+        return await daily.claim_daily(session, body.user_id)
+    except daily.DailyCooldownError as exc:
+        remaining_seconds = max(
+            1,
+            ceil(
+                (exc.available_at - datetime.now(timezone.utc)).total_seconds()
+            ),
+        )
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                "Бонус уже получен. Следующий через "
+                f"{remaining_seconds // 3600} ч "
+                f"{(remaining_seconds % 3600) // 60:02d} мин"
+            ),
         ) from None

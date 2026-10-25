@@ -567,19 +567,135 @@
   }
 
   async function shareToStory(winner) {
-    const text = bragText(winner) + ' — ' + referralLink();
+    await shareItemToStory(winner);
+  }
+
+  // Story caption always carries the personal referral (?start=r<USER_ID>)
+  // so every friend who joins pays the sharer 5% of their drops.
+  function storyCaption(item) {
+    return 'Выбил «' + item.name + '» (' + money(item.price) +
+      ') в @KeysikAppBot! Открой свой кейс по ссылке: ' + referralLink();
+  }
+
+  async function shareItemToStory(item) {
+    if (!item) return;
+    hapticImpact();
+    const caption = storyCaption(item);
     if (tg && typeof tg.shareToStory === 'function') {
       try {
-        tg.shareToStory({ media: cdn(winner.image, '360fx360f'), text: text });
+        tg.shareToStory({ media: cdn(item.image, '360fx360f'), text: caption });
         return;
-      } catch (err) { /* fall through to the manual fallback */ }
+      } catch (err) { /* fall through to the canvas card */ }
+    }
+    // No native shareToStory (browser preview or old client): render a
+    // high-contrast story card and hand it over as a PNG download.
+    try {
+      const dataUrl = await buildStoryCard(item);
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = 'case-battle-' + (item.skin_id || 'drop') + '.png';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast('Карточка сохранена — выложи её в Stories!', 'success');
+    } catch (err) {
+      toast('Не удалось собрать карточку для Stories', 'error');
     }
     try {
-      await navigator.clipboard.writeText(text);
-      toast('Текст скопирован — вставьте его в историю Telegram', 'success');
-    } catch (err) {
-      toast('Скопируйте текст: ' + text, 'success');
-    }
+      await navigator.clipboard.writeText(caption);
+    } catch (err) { /* clipboard is best-effort */ }
+  }
+
+  function storyFont(px, weight) {
+    return (weight || 700) + ' ' + px + 'px "Chakra Petch", Inter, sans-serif';
+  }
+
+  // 720x1280 portrait card: rarity glow, skin render, price, bot CTA.
+  function buildStoryCard(item) {
+    return new Promise((resolve, reject) => {
+      const W = 720;
+      const H = 1280;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      const color = RARITY_COLORS[item.rarity] || '#8b93a7';
+
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#141d38');
+      bg.addColorStop(1, '#070b16');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+      const glow = ctx.createRadialGradient(W / 2, 500, 40, W / 2, 500, 430);
+      glow.addColorStop(0, color + '59');
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffc233';
+      ctx.font = storyFont(46);
+      ctx.fillText('CS CASE BATTLE', W / 2, 150);
+      ctx.fillStyle = '#8b93a7';
+      ctx.font = '600 30px Inter, sans-serif';
+      ctx.fillText('выбил в @KeysikAppBot', W / 2, 200);
+
+      const finish = (skin) => {
+        if (skin && skin.width) {
+          const k = Math.min(560 / skin.width, 380 / skin.height);
+          const w = skin.width * k;
+          const h = skin.height * k;
+          ctx.drawImage(skin, (W - w) / 2, 500 - h / 2, w, h);
+        }
+        const name = (item.is_stat_trak ? 'StatTrak™ ' : '') + item.name;
+        ctx.fillStyle = '#ffffff';
+        let size = 42;
+        ctx.font = storyFont(size);
+        while (ctx.measureText(name).width > 640 && size > 22) {
+          size -= 2;
+          ctx.font = storyFont(size);
+        }
+        ctx.fillText(name, W / 2, 742);
+        ctx.fillStyle = color;
+        ctx.font = storyFont(26, 700);
+        ctx.fillText((RARITY_RU[item.rarity] || item.rarity).toUpperCase(), W / 2, 796);
+        ctx.fillStyle = '#ffc233';
+        ctx.font = storyFont(76);
+        ctx.fillText(money(item.price), W / 2, 906);
+
+        const ctaX = W / 2 - 250;
+        const ctaY = 986;
+        const cta = ctx.createLinearGradient(ctaX, ctaY, ctaX + 500, ctaY + 96);
+        cta.addColorStop(0, '#ffe27a');
+        cta.addColorStop(1, '#ff8a00');
+        ctx.fillStyle = cta;
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(ctaX, ctaY, 500, 96, 48);
+          ctx.fill();
+        } else {
+          ctx.fillRect(ctaX, ctaY, 500, 96);
+        }
+        ctx.fillStyle = '#241300';
+        ctx.font = storyFont(36);
+        ctx.fillText('ОТКРОЙ СВОЙ КЕЙС', W / 2, ctaY + 60);
+        ctx.fillStyle = '#8b93a7';
+        ctx.font = '600 28px Inter, sans-serif';
+        ctx.fillText('t.me/' + (state.botUsername || 'KeysikAppBot'), W / 2, 1160);
+
+        try {
+          resolve(canvas.toDataURL('image/png'));
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      const skin = new Image();
+      skin.crossOrigin = 'anonymous';
+      skin.onload = () => finish(skin);
+      skin.onerror = () => finish(null);
+      skin.src = cdn(item.image, '512fx512f');
+    });
   }
 
   function shareToFriend(winner) {
@@ -602,6 +718,9 @@
   });
   $('btn-friend').addEventListener('click', () => {
     if (state.lastWinner) shareToFriend(state.lastWinner);
+  });
+  $('btn-result-story').addEventListener('click', () => {
+    shareItemToStory(state.lastWinner);
   });
 
   /* ---------- Selling ---------- */
@@ -684,6 +803,16 @@
       const price = document.createElement('span');
       price.className = 'skin-price';
       price.textContent = money(item.price);
+      const storyBtn = document.createElement('button');
+      storyBtn.type = 'button';
+      storyBtn.className = 'btn-inv-story';
+      storyBtn.title = 'Поделиться в Stories';
+      storyBtn.textContent = '📸';
+      storyBtn.addEventListener('click', () => {
+        shareItemToStory(Object.assign({}, item, {
+          image: (catalogSkin(item.skin_id) || {}).image,
+        }));
+      });
       const sell = document.createElement('button');
       sell.type = 'button';
       sell.className = 'btn-sell';
@@ -697,6 +826,7 @@
         });
       });
       meta.appendChild(price);
+      meta.appendChild(storyBtn);
       meta.appendChild(sell);
       body.appendChild(meta);
       card.appendChild(body);
@@ -941,6 +1071,112 @@
   $('upg-slot-right').addEventListener('click', () => openPicker('target'));
   $('btn-upgrade').addEventListener('click', spinUpgrade);
 
+  /* ---------- Daily bonus & streak ---------- */
+
+  let dailyTimer = null;
+  let dailyAutoShown = false;
+
+  function stopDailyTimer() {
+    if (dailyTimer) { clearInterval(dailyTimer); dailyTimer = null; }
+  }
+
+  function renderDailyModal(status) {
+    const track = $('daily-track');
+    track.innerHTML = '';
+    $('daily-streak-count').textContent = status.streak;
+    status.rewards.forEach((reward) => {
+      const cell = document.createElement('div');
+      const cellState = reward.day < status.day ? 'done'
+        : reward.day === status.day ? 'current' : 'locked';
+      cell.className = 'daily-cell ' + cellState;
+      const dayEl = document.createElement('span');
+      dayEl.className = 'dc-day';
+      dayEl.textContent = cellState === 'done' ? '✓' : reward.day;
+      const labelEl = document.createElement('span');
+      labelEl.className = 'dc-label';
+      labelEl.textContent = reward.label;
+      cell.appendChild(dayEl);
+      cell.appendChild(labelEl);
+      track.appendChild(cell);
+    });
+    const button = $('btn-daily-claim');
+    const countdown = $('daily-countdown');
+    stopDailyTimer();
+    if (status.can_claim) {
+      button.disabled = false;
+      button.textContent = 'Забрать: ' + status.rewards[status.day - 1].label;
+      countdown.textContent = 'День ' + status.day + ' из 7 — бонус доступен!';
+    } else {
+      button.disabled = true;
+      const tick = () => {
+        const left = Math.max(0, new Date(status.next_claim_at).getTime() - Date.now());
+        if (left <= 0) {
+          stopDailyTimer();
+          openDailyModal(true);
+          return;
+        }
+        button.textContent = 'Бонус через ' + formatDuration(left);
+      };
+      tick();
+      dailyTimer = setInterval(() => {
+        if ($('daily-modal').classList.contains('hidden')) {
+          stopDailyTimer();
+          return;
+        }
+        tick();
+      }, 1000);
+      countdown.textContent = 'Следующий день стрика: ' + status.day + ' из 7';
+    }
+  }
+
+  async function openDailyModal(force) {
+    try {
+      const status = await api('/api/daily/status/' + USER_ID);
+      // Quiet probe for the session auto-open: show only when claimable.
+      if (!force && !status.can_claim) return;
+      renderDailyModal(status);
+      showModal('daily-modal');
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  async function claimDaily() {
+    const button = $('btn-daily-claim');
+    if (button.disabled) return;
+    button.disabled = true;
+    button.textContent = 'Забираем…';
+    hapticImpact();
+    try {
+      const result = await api('/api/daily/claim', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: USER_ID }),
+      });
+      hapticSuccess();
+      if (result.drop) {
+        hideModal('daily-modal');
+        refreshUser();
+        showResult(result.drop);
+        return;
+      }
+      animateBalance(result.new_balance);
+      toast('Бонус за день ' + result.day + ': +' + result.reward.label, 'success');
+      const status = await api('/api/daily/status/' + USER_ID);
+      renderDailyModal(status);
+      refreshUser();
+    } catch (err) {
+      hapticError();
+      toast(err.message, 'error');
+      openDailyModal(true);
+    }
+  }
+
+  $('btn-daily').addEventListener('click', () => {
+    hapticImpact();
+    openDailyModal(true);
+  });
+  $('btn-daily-claim').addEventListener('click', claimDaily);
+
   /* ---------- Modals ---------- */
 
   function showModal(id) { $(id).classList.remove('hidden'); }
@@ -974,6 +1210,11 @@
       renderGrid();
     } catch (err) {
       toast(err.message, 'error');
+    }
+    // Nudge once per session when a daily reward is waiting.
+    if (!dailyAutoShown) {
+      dailyAutoShown = true;
+      openDailyModal(false);
     }
   }
 

@@ -19,7 +19,10 @@
         <span class="user-sub">Баланс: <b id="balance-top">…</b></span>
       </div>
     </div>
-    <div class="balance-pill" id="balance-pill">···</div>
+    <div class="topbar-actions">
+      <button class="gift-chip" type="button" id="btn-daily" title="Ежедневный бонус">🎁</button>
+      <div class="balance-pill" id="balance-pill">···</div>
+    </div>
   </header>
 
   <main class="app">
@@ -136,6 +139,7 @@
       <div class="drop-card" id="drop-card"></div>
       <div class="result-actions">
         <button class="btn-brag" type="button" id="btn-brag">✨ Похвастаться</button>
+        <button class="btn-story-sm" type="button" id="btn-result-story">📸 Поделиться в Stories</button>
         <div class="result-row">
           <button class="btn-primary" type="button" id="btn-sell"></button>
           <button class="btn-ghost" type="button" id="btn-keep">Оставить</button>
@@ -181,6 +185,19 @@
       <button class="modal-close" type="button" data-close="pick-target-modal">✕</button>
       <h2 class="share-title">Цель апгрейда</h2>
       <div class="pick-list" id="pick-target-list"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="daily-modal">
+    <div class="modal daily-modal">
+      <button class="modal-close" type="button" data-close="daily-modal">✕</button>
+      <h2 class="share-title">Ежедневный бонус</h2>
+      <div class="daily-streak-line">
+        Твой стрик: <b id="daily-streak-count">0</b>
+      </div>
+      <div class="daily-track" id="daily-track"></div>
+      <div class="daily-countdown" id="daily-countdown"></div>
+      <button class="btn-primary btn-block" type="button" id="btn-daily-claim">Забрать бонус</button>
     </div>
   </div>
 
