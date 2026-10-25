@@ -31,6 +31,42 @@
       <div class="case-grid" id="case-grid"></div>
     </section>
 
+    <section class="screen hidden" id="screen-upgrade">
+      <div class="screen-head">
+        <h1 class="screen-title">Апгрейд</h1>
+        <span class="screen-count">Рискни скином ради топа</span>
+      </div>
+      <div class="upg-slots">
+        <div class="upg-slot" id="upg-slot-left" role="button" tabindex="0">
+          <div class="upg-slot-circle"><img alt="" class="hidden"></div>
+          <div class="upg-slot-name">Твой скин</div>
+          <div class="upg-slot-price">выбери из инвентаря</div>
+        </div>
+        <div class="upg-chance">
+          <div class="upg-multiplier" id="upg-multiplier">—</div>
+          <div class="upg-percent" id="upg-percent">—</div>
+          <div class="upg-chance-label">шанс</div>
+        </div>
+        <div class="upg-slot" id="upg-slot-right" role="button" tabindex="0">
+          <div class="upg-slot-circle"><img alt="" class="hidden"></div>
+          <div class="upg-slot-name">Цель</div>
+          <div class="upg-slot-price">выбери скин</div>
+        </div>
+      </div>
+      <div class="upg-wheel-wrap" id="upg-wheel-wrap">
+        <svg viewBox="0 0 200 200" class="upg-wheel" aria-hidden="true">
+          <circle class="upg-track" cx="100" cy="100" r="84"/>
+          <circle class="upg-arc" id="upg-arc" cx="100" cy="100" r="84"/>
+        </svg>
+        <div class="upg-pointer" id="upg-pointer"></div>
+        <div class="upg-wheel-center">
+          <div class="upg-wheel-status" id="upg-wheel-status">?</div>
+          <div class="upg-wheel-sub" id="upg-wheel-sub">выбери скины</div>
+        </div>
+      </div>
+      <button class="btn-primary btn-block" type="button" id="btn-upgrade" disabled>Апгрейд</button>
+    </section>
+
     <section class="screen hidden" id="screen-collection">
       <div class="screen-head">
         <h1 class="screen-title">Моя коллекция</h1>
@@ -57,6 +93,10 @@
     <button class="tab active" type="button" data-view="cases">
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 7v10l8 4 8-4V7l-8-4Zm0 2.2L17.6 8 12 10.8 6.4 8 12 5.2ZM6 9.9l5 2.5v6.6l-5-2.5V9.9Zm7 9.1v-6.6l5-2.5v6.6l-5 2.5Z" fill="currentColor"/></svg>
       <span>Кейсы</span>
+    </button>
+    <button class="tab" type="button" data-view="upgrade">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4.5 10.5h4.4V21h6.2V10.5h4.4L12 3Z" fill="currentColor"/></svg>
+      <span>Апгрейд</span>
     </button>
     <button class="tab" type="button" data-view="collection">
       <svg viewBox="0 0 24 24" fill="none"><path d="M8 7V6a4 4 0 1 1 8 0v1h2.5A1.5 1.5 0 0 1 20 8.5v10A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-10A1.5 1.5 0 0 1 5.5 7H8Zm2 0h4V6a2 2 0 1 0-4 0v1Z" fill="currentColor"/></svg>
@@ -125,6 +165,22 @@
         <button class="btn-story" type="button" id="btn-story">Выложить в историю</button>
         <button class="btn-friend" type="button" id="btn-friend">Отправить другу</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="pick-inv-modal">
+    <div class="modal pick-modal">
+      <button class="modal-close" type="button" data-close="pick-inv-modal">✕</button>
+      <h2 class="share-title">Твой скин</h2>
+      <div class="pick-list" id="pick-inv-list"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="pick-target-modal">
+    <div class="modal pick-modal">
+      <button class="modal-close" type="button" data-close="pick-target-modal">✕</button>
+      <h2 class="share-title">Цель апгрейда</h2>
+      <div class="pick-list" id="pick-target-list"></div>
     </div>
   </div>
 

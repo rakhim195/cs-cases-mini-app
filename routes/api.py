@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.database import get_session
-from services import game
+from services import game, upgrade
 from services.catalog import CaseNotFoundError, case_public, list_cases
 
 router = APIRouter(prefix="/api", tags=["gameplay"])
@@ -20,6 +20,12 @@ router = APIRouter(prefix="/api", tags=["gameplay"])
 class OpenCaseRequest(BaseModel):
     user_id: int
     case_id: str
+
+
+class UpgradeRequest(BaseModel):
+    user_id: int
+    selected_item_id: int
+    target_skin_id: str
 
 
 class SellItemRequest(BaseModel):
@@ -99,3 +105,28 @@ async def get_inventory(
 ) -> dict:
     """Active (un-sold) inventory items, newest first."""
     return await game.inventory_list(session, user_id)
+
+
+@router.get("/upgrade/catalog")
+async def get_upgrade_catalog() -> dict:
+    """Skins available as upgrade targets, sorted by price (desc)."""
+    return await upgrade.upgrade_catalog()
+
+
+@router.post("/upgrade")
+async def upgrade_skin(
+    body: UpgradeRequest, session: AsyncSession = Depends(get_session)
+) -> dict:
+    """Stake an owned skin for a chance to win a catalog target."""
+    try:
+        return await upgrade.upgrade_item(
+            session, body.user_id, body.selected_item_id, body.target_skin_id
+        )
+    except upgrade.UpgradeItemNotFoundError:
+        raise HTTPException(
+            status_code=404, detail="Скин для апгрейда не найден"
+        ) from None
+    except upgrade.UpgradeTargetNotFoundError:
+        raise HTTPException(
+            status_code=404, detail="Целевой скин не найден"
+        ) from None

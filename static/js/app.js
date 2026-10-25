@@ -186,12 +186,14 @@
   function switchView(view) {
     state.view = view;
     $('screen-cases').classList.toggle('hidden', view !== 'cases');
+    $('screen-upgrade').classList.toggle('hidden', view !== 'upgrade');
     $('screen-collection').classList.toggle('hidden', view !== 'collection');
     document.querySelectorAll('.tab').forEach((tab) => {
       tab.classList.toggle('active', tab.getAttribute('data-view') === view);
     });
     window.scrollTo({ top: 0 });
     if (view === 'collection') refreshInventory();
+    if (view === 'upgrade') initUpgradeScreen();
   }
 
   document.querySelectorAll('.tab').forEach((tab) => {
@@ -704,6 +706,240 @@
   }
 
   $('btn-go-cases').addEventListener('click', () => switchView('cases'));
+
+  /* ---------- Upgrade screen ---------- */
+
+  const UPGRADE_FACTOR = 0.95;
+  const UPGRADE_MIN = 0.01;
+  const UPGRADE_MAX = 0.80;
+  const UPGRADE_WHEEL_R = 84;
+  const UPGRADE_SPIN_MS = 4200;
+
+  const upgradeState = {
+    targets: [],
+    selected: null,
+    target: null,
+    spinning: false,
+    pointerTurns: 0,
+    pointerAngle: 0,
+  };
+
+  // Must mirror services/upgrade.py success_chance exactly.
+  function upgradeChance() {
+    if (!upgradeState.selected || !upgradeState.target) return null;
+    const sel = Number(upgradeState.selected.price);
+    const tgt = Number(upgradeState.target.base_price);
+    if (!(sel > 0) || !(tgt > 0)) return null;
+    return Math.min(UPGRADE_MAX, Math.max(UPGRADE_MIN, (sel / tgt) * UPGRADE_FACTOR));
+  }
+
+  function catalogSkin(skinId) {
+    return upgradeState.targets.find((t) => t.skin_id === skinId) || null;
+  }
+
+  async function initUpgradeScreen() {
+    if (!upgradeState.targets.length) {
+      try {
+        const payload = await api('/api/upgrade/catalog');
+        upgradeState.targets = payload.items;
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    }
+    await refreshInventory();
+    renderUpgradeSlots();
+  }
+
+  function fillUpgradeSlot(side, item, placeholder) {
+    const slot = $(side === 'left' ? 'upg-slot-left' : 'upg-slot-right');
+    const circle = slot.querySelector('.upg-slot-circle');
+    const img = circle.querySelector('img');
+    const meta = item && catalogSkin(item.skin_id);
+    slot.style.setProperty('--rc', RARITY_COLORS[item ? item.rarity : 'Mil-Spec'] || '#8b93a7');
+    if (item) {
+      const src = item.image || (meta && meta.image);
+      img.src = src ? cdn(src, '256fx256f') : FALLBACK_IMG;
+      img.onerror = () => { img.onerror = null; img.src = FALLBACK_IMG; };
+      img.classList.remove('hidden');
+      circle.classList.remove('empty');
+      slot.querySelector('.upg-slot-name').textContent =
+        (item.is_stat_trak ? 'ST™ ' : '') + item.name;
+      const value = item.price !== undefined ? item.price : item.base_price;
+      slot.querySelector('.upg-slot-price').textContent = money(value);
+    } else {
+      img.classList.add('hidden');
+      img.removeAttribute('src');
+      circle.classList.add('empty');
+      slot.querySelector('.upg-slot-name').textContent =
+        side === 'left' ? 'Твой скин' : 'Цель';
+      slot.querySelector('.upg-slot-price').textContent = placeholder;
+    }
+  }
+
+  function setWheelArc(chance) {
+    const C = 2 * Math.PI * UPGRADE_WHEEL_R;
+    $('upg-arc').style.strokeDasharray = (chance * C) + ' ' + C;
+  }
+
+  function wheelStatus(main, sub) {
+    $('upg-wheel-status').textContent = main;
+    $('upg-wheel-sub').textContent = sub;
+  }
+
+  function renderUpgradeSlots() {
+    fillUpgradeSlot('left', upgradeState.selected, 'выбери из инвентаря');
+    fillUpgradeSlot('right', upgradeState.target, 'выбери скин');
+    const chance = upgradeChance();
+    const button = $('btn-upgrade');
+    if (chance === null) {
+      $('upg-percent').textContent = '—';
+      $('upg-multiplier').textContent = '—';
+      setWheelArc(0);
+      wheelStatus('?', 'выбери скины');
+      button.disabled = true;
+      button.textContent = 'Апгрейд';
+    } else {
+      const percent = (chance * 100).toFixed(1);
+      const mult = Number(upgradeState.target.base_price) / Number(upgradeState.selected.price);
+      $('upg-percent').textContent = percent + '%';
+      $('upg-multiplier').textContent = '×' + mult.toFixed(1);
+      setWheelArc(chance);
+      wheelStatus(percent + '%', 'шанс успеха');
+      button.disabled = upgradeState.spinning;
+      button.textContent = 'Апгрейд • ' + percent + '%';
+    }
+  }
+
+  function openPicker(kind) {
+    if (upgradeState.spinning) return;
+    const isInv = kind === 'inv';
+    const listEl = $(isInv ? 'pick-inv-list' : 'pick-target-list');
+    listEl.innerHTML = '';
+    const rows = isInv ? state.inventory : upgradeState.targets;
+    if (!rows.length) {
+      const note = document.createElement('div');
+      note.className = 'pick-empty';
+      note.textContent = isInv
+        ? 'Инвентарь пуст — открой кейс, чтобы получить скин'
+        : 'Каталог загружается…';
+      listEl.appendChild(note);
+      showModal(isInv ? 'pick-inv-modal' : 'pick-target-modal');
+      return;
+    }
+    rows.forEach((item) => {
+      const meta = catalogSkin(item.skin_id);
+      const value = isInv ? item.price : item.base_price;
+      const current = isInv
+        ? upgradeState.selected && upgradeState.selected.item_id === item.item_id
+        : upgradeState.target && upgradeState.target.skin_id === item.skin_id;
+      const row = document.createElement('div');
+      row.className = 'pool-row pick-row' + (current ? ' current' : '');
+      row.style.setProperty('--rc', RARITY_COLORS[item.rarity] || '#8b93a7');
+      row.appendChild(skinImage(
+        Object.assign({}, item, { image: item.image || (meta && meta.image) }),
+        '128fx128f', '', item.name
+      ));
+      const nm = document.createElement('span');
+      nm.className = 'nm';
+      nm.textContent = (item.is_stat_trak ? 'ST™ ' : '') + item.name;
+      const pr = document.createElement('span');
+      pr.className = 'pr';
+      pr.textContent = money(value);
+      row.appendChild(nm);
+      row.appendChild(pr);
+      row.addEventListener('click', () => {
+        hapticImpact();
+        if (isInv) upgradeState.selected = item;
+        else upgradeState.target = item;
+        hideModal(isInv ? 'pick-inv-modal' : 'pick-target-modal');
+        renderUpgradeSlots();
+      });
+      listEl.appendChild(row);
+    });
+    showModal(isInv ? 'pick-inv-modal' : 'pick-target-modal');
+  }
+
+  function animatePointerTo(degree) {
+    return new Promise((resolve) => {
+      const pointer = $('upg-pointer');
+      upgradeState.pointerTurns += 5;
+      const final = upgradeState.pointerTurns * 360 + degree;
+      pointer.style.transition = 'none';
+      pointer.style.transform = 'rotate(' + upgradeState.pointerAngle + 'deg)';
+      void pointer.offsetWidth;
+      pointer.style.transition =
+        'transform ' + UPGRADE_SPIN_MS + 'ms cubic-bezier(0.12, 0.82, 0.16, 1)';
+      pointer.style.transform = 'rotate(' + final + 'deg)';
+      upgradeState.pointerAngle = final;
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        pointer.removeEventListener('transitionend', onEnd);
+        resolve();
+      };
+      const onEnd = (event) => {
+        if (event.propertyName === 'transform') finish();
+      };
+      pointer.addEventListener('transitionend', onEnd);
+      setTimeout(finish, UPGRADE_SPIN_MS + 900);
+    });
+  }
+
+  function applyUpgradeResult(result) {
+    const wrap = $('upg-wheel-wrap');
+    if (result.status === 'win') {
+      wrap.classList.add('win');
+      hapticSuccess();
+      spawnParticles(wrap, 26);
+      wheelStatus('ВЫИГРЫШ!', result.target_item.name);
+      upgradeState.selected = result.target_item;
+      toast('Апгрейд удался: ' + result.target_item.name, 'success');
+    } else {
+      wrap.classList.add('lose');
+      hapticError();
+      wheelStatus('ПРОИГРЫШ', 'скин сгорел');
+      upgradeState.selected = null;
+    }
+    setTimeout(() => {
+      wrap.classList.remove('win', 'lose');
+      upgradeState.spinning = false;
+      renderUpgradeSlots();
+      refreshInventory();
+      refreshUser();
+    }, 1700);
+  }
+
+  async function spinUpgrade() {
+    if (upgradeState.spinning || !upgradeState.selected || !upgradeState.target) return;
+    upgradeState.spinning = true;
+    const button = $('btn-upgrade');
+    button.disabled = true;
+    button.textContent = 'Крутим…';
+    hapticImpact();
+    try {
+      const result = await api('/api/upgrade', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: USER_ID,
+          selected_item_id: upgradeState.selected.item_id,
+          target_skin_id: upgradeState.target.skin_id,
+        }),
+      });
+      setWheelArc(result.chance);
+      await animatePointerTo(result.roll_degree);
+      applyUpgradeResult(result);
+    } catch (err) {
+      hapticError();
+      toast(err.message, 'error');
+      upgradeState.spinning = false;
+      renderUpgradeSlots();
+    }
+  }
+
+  $('upg-slot-left').addEventListener('click', () => openPicker('inv'));
+  $('upg-slot-right').addEventListener('click', () => openPicker('target'));
+  $('btn-upgrade').addEventListener('click', spinUpgrade);
 
   /* ---------- Modals ---------- */
 

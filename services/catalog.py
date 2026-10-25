@@ -97,6 +97,42 @@ def get_case(case_id: str) -> Case:
         raise CaseNotFoundError(case_id) from None
 
 
+def all_skins() -> list[dict[str, Any]]:
+    """Every unique skin across all cases, priciest first.
+
+    Each entry carries the id of the first case that contains the skin, so
+    upgrader wins can be persisted with a valid case_id.
+    """
+    seen: dict[str, dict[str, Any]] = {}
+    for case in list_cases():
+        for item in case.items:
+            skin_id = item["skin_id"]
+            if skin_id in seen:
+                continue
+            seen[skin_id] = {
+                "skin_id": skin_id,
+                "case_id": case.id,
+                "name": item["name"],
+                "rarity": item["rarity"],
+                "base_price": item["base_price"],
+                "name_en": item.get("name_en"),
+                "image": item.get("image"),
+                "min_float": item.get("min_float", 0.0),
+                "max_float": item.get("max_float", 1.0),
+            }
+    return sorted(
+        seen.values(), key=lambda skin: float(skin["base_price"]), reverse=True
+    )
+
+
+def get_skin(skin_id: str) -> dict[str, Any] | None:
+    """One catalog skin by skin_id, or None (see all_skins for fields)."""
+    for skin in all_skins():
+        if skin["skin_id"] == skin_id:
+            return skin
+    return None
+
+
 def case_public(case: Case) -> dict[str, Any]:
     """API projection of a case, including its full item pool."""
     return {
