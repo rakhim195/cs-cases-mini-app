@@ -1,0 +1,226 @@
+"""Gameplay operations: user provisioning, case opening and item selling."""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+from collections.abc import Mapping
+from typing import Any
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from models import InventoryItem, User
+from services import rng
+from services.catalog import CaseNotFoundError, get_case, list_cases
+
+REEL_LENGTH = 30
+
+
+class CooldownError(Exception):
+    """Daily free case is still on cooldown."""
+
+    def __init__(self, available_at: datetime) -> None:
+        self.available_at = available_at
+        super().__init__(f"free case available at {available_at.isoformat()}")
+
+
+class InsufficientFundsError(Exception):
+    """User balance is below the case price."""
+
+    def __init__(self, price: float) -> None:
+        self.price = price
+        super().__init__(f"insufficient funds: case costs {price}")
+
+
+class ItemNotFoundError(LookupError):
+    """Item id is unknown or belongs to another user."""
+
+
+class ItemAlreadySoldError(RuntimeError):
+    """Item has already been sold."""
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _as_utc(value: datetime) -> datetime:
+    """SQLite round-trips datetimes naive; they are stored as UTC."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+
+async def get_or_create_user(session: AsyncSession, user_id: int) -> User:
+    user = await session.get(User, user_id)
+    if user is None:
+        user = User(id=user_id, first_name="")
+        session.add(user)
+        await session.flush()
+    return user
+
+
+async def user_profile(session: AsyncSession, user_id: int) -> dict[str, Any]:
+    """Profile payload for the header; provisions the user on first call."""
+    user = await get_or_create_user(session, user_id)
+    inventory_count = await session.scalar(
+        select(func.count())
+        .select_from(InventoryItem)
+        .where(
+            InventoryItem.user_id == user.id,
+            InventoryItem.is_sold.is_(False),
+        )
+    )
+    available_at: str | None = None
+    if user.last_free_case_at is not None:
+        for case in list_cases():
+            if case.is_free and case.cooldown_hours:
+                ready_at = _as_utc(user.last_free_case_at) + timedelta(
+                    hours=case.cooldown_hours
+                )
+                if _utcnow() < ready_at:
+                    available_at = ready_at.isoformat()
+                break
+    await session.commit()
+    return {
+        "id": user.id,
+        "username": user.username,
+        "first_name": user.first_name,
+        "balance": user.balance,
+        "free_spins": user.free_spins,
+        "cases_opened": user.cases_opened,
+        "inventory_count": int(inventory_count or 0),
+        "free_case_available_at": available_at,
+    }
+
+
+def _pool_display(
+    item: Mapping[str, Any], case_id: str, **extra: Any
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "skin_id": item["skin_id"],
+        "name": item["name"],
+        "rarity": item["rarity"],
+        "base_price": item["base_price"],
+        "case_id": case_id,
+    }
+    payload.update(extra)
+    return payload
+
+
+async def open_case(
+    session: AsyncSession, user_id: int, case_id: str
+) -> dict[str, Any]:
+    """Charge (or cooldown-check), roll the drop and persist the result."""
+    user = await get_or_create_user(session, user_id)
+    case = get_case(case_id)
+    now = _utcnow()
+
+    if case.is_free:
+        if case.cooldown_hours and user.last_free_case_at is not None:
+            ready_at = _as_utc(user.last_free_case_at) + timedelta(
+                hours=case.cooldown_hours
+            )
+            if now < ready_at:
+                raise CooldownError(ready_at)
+        user.last_free_case_at = now
+    else:
+        if user.balance < case.price:
+            raise InsufficientFundsError(case.price)
+        user.balance = round(user.balance - case.price, 2)
+
+    pool_item = rng.weighted_pick(case.items)
+    wear_name, wear_float = rng.roll_wear()
+    is_stat_trak = rng.roll_stat_trak()
+    price = rng.compute_price(pool_item["base_price"], is_stat_trak)
+
+    item = InventoryItem(
+        user_id=user.id,
+        skin_id=pool_item["skin_id"],
+        case_id=case.id,
+        name=pool_item["name"],
+        rarity=pool_item["rarity"],
+        wear=wear_name,
+        is_stat_trak=is_stat_trak,
+        price=price,
+        is_sold=False,
+    )
+    session.add(item)
+    user.cases_opened += 1
+    await session.flush()
+
+    winner = _pool_display(
+        pool_item,
+        case.id,
+        item_id=item.id,
+        wear=wear_name,
+        wear_float=wear_float,
+        is_stat_trak=is_stat_trak,
+        price=price,
+    )
+    reel = [
+        _pool_display(rng.uniform_choice(case.items), case.id)
+        for _ in range(REEL_LENGTH - 1)
+    ]
+    reel.append(winner)
+
+    await session.commit()
+    return {"winner": winner, "reel": reel, "new_balance": user.balance}
+
+
+async def sell_item(
+    session: AsyncSession, user_id: int, item_id: int
+) -> dict[str, Any]:
+    """Mark an owned item as sold and credit its price to the balance."""
+    item = await session.get(InventoryItem, item_id)
+    if item is None or item.user_id != user_id:
+        raise ItemNotFoundError(item_id)
+    if item.is_sold:
+        raise ItemAlreadySoldError(item_id)
+    user = await session.get(User, user_id)
+    if user is None:
+        raise ItemNotFoundError(user_id)
+    item.is_sold = True
+    user.balance = round(user.balance + item.price, 2)
+    await session.commit()
+    return {"new_balance": user.balance, "sold_price": item.price}
+
+
+def _inventory_public(item: InventoryItem) -> dict[str, Any]:
+    return {
+        "item_id": item.id,
+        "skin_id": item.skin_id,
+        "case_id": item.case_id,
+        "name": item.name,
+        "rarity": item.rarity,
+        "wear": item.wear,
+        "is_stat_trak": bool(item.is_stat_trak),
+        "price": item.price,
+        "created_at": (
+            item.created_at.isoformat() if item.created_at else None
+        ),
+    }
+
+
+async def inventory_list(
+    session: AsyncSession, user_id: int
+) -> dict[str, Any]:
+    """Active (un-sold) inventory items, newest first."""
+    items = (
+        (
+            await session.execute(
+                select(InventoryItem)
+                .where(
+                    InventoryItem.user_id == user_id,
+                    InventoryItem.is_sold.is_(False),
+                )
+                .order_by(InventoryItem.id.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return {
+        "items": [_inventory_public(item) for item in items],
+        "count": len(items),
+    }

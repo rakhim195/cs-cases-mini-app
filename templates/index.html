@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>CS Case Battles — Unboxing</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="user-chip">
+      <div class="avatar" id="user-avatar">?</div>
+      <div class="user-meta">
+        <span class="user-name" id="user-name">Player</span>
+        <span class="inv-count"><b id="inv-count">0</b> items in vault</span>
+      </div>
+    </div>
+    <div class="balance-pill" id="balance-pill">···</div>
+  </header>
+
+  <main class="screen">
+    <h1 class="screen-title">CASES</h1>
+    <div class="case-grid" id="case-grid"></div>
+  </main>
+
+  <div class="modal-backdrop hidden" id="case-modal">
+    <div class="modal case-modal">
+      <button class="modal-close" type="button" data-close="case-modal">✕</button>
+      <div class="case-title" id="case-modal-name"></div>
+      <div class="case-sub" id="case-modal-sub"></div>
+      <div class="pool-list" id="case-pool"></div>
+      <button class="btn-primary" type="button" id="btn-open-case"></button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="reel-modal">
+    <div class="modal reel-modal">
+      <h2 id="reel-title">Opening…</h2>
+      <div class="reel-window" id="reel-window">
+        <div class="reel-needle"></div>
+        <div class="reel-track" id="reel-track"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="result-modal">
+    <div class="modal result-modal">
+      <h2 class="result-title">You got</h2>
+      <div class="drop-card" id="drop-card"></div>
+      <div class="result-actions">
+        <button class="btn-primary" type="button" id="btn-sell"></button>
+        <button class="btn-ghost" type="button" id="btn-keep">Keep in Vault</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

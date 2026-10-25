@@ -1,0 +1,639 @@
+{
+  "cases": [
+    {
+      "id": "daily_free",
+      "name": "Daily Free Case",
+      "price": 0,
+      "cooldown_hours": 24,
+      "accent": "#4b69ff",
+      "items": [
+        {
+          "skin_id": "p250-sand-dune",
+          "name": "P250 | Sand Dune",
+          "rarity": "Mil-Spec",
+          "base_price": 2.5,
+          "weight": 22
+        },
+        {
+          "skin_id": "mp9-sand-dashed",
+          "name": "MP9 | Sand Dashed",
+          "rarity": "Mil-Spec",
+          "base_price": 3.5,
+          "weight": 18
+        },
+        {
+          "skin_id": "scar-20-contract",
+          "name": "SCAR-20 | Contract",
+          "rarity": "Mil-Spec",
+          "base_price": 3.0,
+          "weight": 16
+        },
+        {
+          "skin_id": "nova-predator",
+          "name": "Nova | Predator",
+          "rarity": "Mil-Spec",
+          "base_price": 4.0,
+          "weight": 14
+        },
+        {
+          "skin_id": "glock-18-sand-dune",
+          "name": "Glock-18 | Sand Dune",
+          "rarity": "Mil-Spec",
+          "base_price": 5.0,
+          "weight": 10
+        },
+        {
+          "skin_id": "p90-teardown",
+          "name": "P90 | Teardown",
+          "rarity": "Restricted",
+          "base_price": 12.0,
+          "weight": 8
+        },
+        {
+          "skin_id": "five-seven-angry-mob",
+          "name": "Five-SeveN | Angry Mob",
+          "rarity": "Restricted",
+          "base_price": 18.0,
+          "weight": 6
+        },
+        {
+          "skin_id": "nova-hyper-beast",
+          "name": "Nova | Hyper Beast",
+          "rarity": "Restricted",
+          "base_price": 25.0,
+          "weight": 6
+        }
+      ]
+    },
+    {
+      "id": "fracture",
+      "name": "Fracture Case",
+      "price": 150,
+      "cooldown_hours": null,
+      "accent": "#8847ff",
+      "items": [
+        {
+          "skin_id": "glock-18-vogue",
+          "name": "Glock-18 | Vogue",
+          "rarity": "Mil-Spec",
+          "base_price": 55,
+          "weight": 11.42
+        },
+        {
+          "skin_id": "galil-ar-connexion",
+          "name": "Galil AR | Connexion",
+          "rarity": "Mil-Spec",
+          "base_price": 50,
+          "weight": 11.42
+        },
+        {
+          "skin_id": "mag-7-monster-call",
+          "name": "MAG-7 | Monster Call",
+          "rarity": "Mil-Spec",
+          "base_price": 45,
+          "weight": 11.42
+        },
+        {
+          "skin_id": "p90-freight",
+          "name": "P90 | Freight",
+          "rarity": "Mil-Spec",
+          "base_price": 48,
+          "weight": 11.42
+        },
+        {
+          "skin_id": "p2000-gnarled",
+          "name": "P2000 | Gnarled",
+          "rarity": "Mil-Spec",
+          "base_price": 42,
+          "weight": 11.42
+        },
+        {
+          "skin_id": "sg553-ol-rusty",
+          "name": "SG 553 | Ol' Rusty",
+          "rarity": "Mil-Spec",
+          "base_price": 40,
+          "weight": 11.42
+        },
+        {
+          "skin_id": "sg553-dragon-tech",
+          "name": "SG 553 | Dragon Tech",
+          "rarity": "Mil-Spec",
+          "base_price": 60,
+          "weight": 11.42
+        },
+        {
+          "skin_id": "mac-10-allure",
+          "name": "MAC-10 | Allure",
+          "rarity": "Restricted",
+          "base_price": 90,
+          "weight": 3.2
+        },
+        {
+          "skin_id": "mp5-sd-kitbash",
+          "name": "MP5-SD | Kitbash",
+          "rarity": "Restricted",
+          "base_price": 120,
+          "weight": 3.2
+        },
+        {
+          "skin_id": "negev-ultralight",
+          "name": "Negev | Ultralight",
+          "rarity": "Restricted",
+          "base_price": 110,
+          "weight": 3.2
+        },
+        {
+          "skin_id": "pp-bizon-runic",
+          "name": "PP-Bizon | Runic",
+          "rarity": "Restricted",
+          "base_price": 100,
+          "weight": 3.2
+        },
+        {
+          "skin_id": "tec-9-brother",
+          "name": "Tec-9 | Brother",
+          "rarity": "Restricted",
+          "base_price": 130,
+          "weight": 3.2
+        },
+        {
+          "skin_id": "m4a4-tooth-fairy",
+          "name": "M4A4 | Tooth Fairy",
+          "rarity": "Classified",
+          "base_price": 420,
+          "weight": 1.6
+        },
+        {
+          "skin_id": "xm1014-entombed",
+          "name": "XM1014 | Entombed",
+          "rarity": "Classified",
+          "base_price": 380,
+          "weight": 1.0
+        },
+        {
+          "skin_id": "ssg08-fever-dream",
+          "name": "SSG 08 | Fever Dream",
+          "rarity": "Classified",
+          "base_price": 350,
+          "weight": 0.6
+        },
+        {
+          "skin_id": "desert-eagle-printstream",
+          "name": "Desert Eagle | Printstream",
+          "rarity": "Covert",
+          "base_price": 1400,
+          "weight": 0.52
+        },
+        {
+          "skin_id": "ak-47-legion-of-anubis",
+          "name": "AK-47 | Legion of Anubis",
+          "rarity": "Covert",
+          "base_price": 2200,
+          "weight": 0.12
+        },
+        {
+          "skin_id": "gut-knife-doppler",
+          "name": "★ Gut Knife | Doppler",
+          "rarity": "Special",
+          "base_price": 5800,
+          "weight": 0.18
+        },
+        {
+          "skin_id": "falchion-knife-marble-fade",
+          "name": "★ Falchion Knife | Marble Fade",
+          "rarity": "Special",
+          "base_price": 7200,
+          "weight": 0.08
+        }
+      ]
+    },
+    {
+      "id": "dreams_nightmares",
+      "name": "Dreams & Nightmares Case",
+      "price": 250,
+      "cooldown_hours": null,
+      "accent": "#d32ce6",
+      "items": [
+        {
+          "skin_id": "five-seven-scrawl",
+          "name": "Five-SeveN | Scrawl",
+          "rarity": "Mil-Spec",
+          "base_price": 70,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "mp5-sd-necro-jr",
+          "name": "MP5-SD | Necro Jr.",
+          "rarity": "Mil-Spec",
+          "base_price": 75,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "pp-bizon-space-cat",
+          "name": "PP-Bizon | Space Cat",
+          "rarity": "Mil-Spec",
+          "base_price": 65,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "g3sg1-dream-glade",
+          "name": "G3SG1 | Dream Glade",
+          "rarity": "Mil-Spec",
+          "base_price": 62,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "mag-7-foresight",
+          "name": "MAG-7 | Foresight",
+          "rarity": "Mil-Spec",
+          "base_price": 68,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "dual-berettas-melondrama",
+          "name": "Dual Berettas | Melondrama",
+          "rarity": "Mil-Spec",
+          "base_price": 72,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "mp9-starlight-protector",
+          "name": "MP9 | Starlight Protector",
+          "rarity": "Restricted",
+          "base_price": 210,
+          "weight": 4.0
+        },
+        {
+          "skin_id": "xm1014-zombie-offensive",
+          "name": "XM1014 | Zombie Offensive",
+          "rarity": "Restricted",
+          "base_price": 230,
+          "weight": 4.0
+        },
+        {
+          "skin_id": "mp5-sd-autumn-twilly",
+          "name": "MP5-SD | Autumn Twilly",
+          "rarity": "Restricted",
+          "base_price": 195,
+          "weight": 4.0
+        },
+        {
+          "skin_id": "scar-20-poultrygeist",
+          "name": "SCAR-20 | Poultrygeist",
+          "rarity": "Restricted",
+          "base_price": 185,
+          "weight": 4.0
+        },
+        {
+          "skin_id": "awp-duality",
+          "name": "AWP | Duality",
+          "rarity": "Classified",
+          "base_price": 950,
+          "weight": 1.4
+        },
+        {
+          "skin_id": "m4a1-s-night-terror",
+          "name": "M4A1-S | Night Terror",
+          "rarity": "Classified",
+          "base_price": 1050,
+          "weight": 1.0
+        },
+        {
+          "skin_id": "famas-rapid-eye-movement",
+          "name": "FAMAS | Rapid Eye Movement",
+          "rarity": "Classified",
+          "base_price": 850,
+          "weight": 0.8
+        },
+        {
+          "skin_id": "ak-47-head-shot",
+          "name": "AK-47 | Head Shot",
+          "rarity": "Covert",
+          "base_price": 3400,
+          "weight": 0.5
+        },
+        {
+          "skin_id": "five-seven-nightbane",
+          "name": "Five-SeveN | Nightbane",
+          "rarity": "Covert",
+          "base_price": 2800,
+          "weight": 0.14
+        },
+        {
+          "skin_id": "flip-knife-fade",
+          "name": "★ Flip Knife | Fade",
+          "rarity": "Special",
+          "base_price": 6800,
+          "weight": 0.2
+        },
+        {
+          "skin_id": "karambit-fade",
+          "name": "★ Karambit | Fade",
+          "rarity": "Special",
+          "base_price": 9500,
+          "weight": 0.06
+        }
+      ]
+    },
+    {
+      "id": "revolution",
+      "name": "Revolution Case",
+      "price": 350,
+      "cooldown_hours": null,
+      "accent": "#eb4b4b",
+      "items": [
+        {
+          "skin_id": "p2000-wicked-sick",
+          "name": "P2000 | Wicked Sick",
+          "rarity": "Mil-Spec",
+          "base_price": 105,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "mag-7-insomnia",
+          "name": "MAG-7 | Insomnia",
+          "rarity": "Mil-Spec",
+          "base_price": 98,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "r8-revolver-banana-cannon",
+          "name": "R8 Revolver | Banana Cannon",
+          "rarity": "Mil-Spec",
+          "base_price": 115,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "sg553-cyberforce",
+          "name": "SG 553 | Cyberforce",
+          "rarity": "Mil-Spec",
+          "base_price": 128,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "mp5-sd-liquidation",
+          "name": "MP5-SD | Liquidation",
+          "rarity": "Mil-Spec",
+          "base_price": 108,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "glock-18-umbral-rabbit",
+          "name": "Glock-18 | Umbral Rabbit",
+          "rarity": "Mil-Spec",
+          "base_price": 145,
+          "weight": 13.32
+        },
+        {
+          "skin_id": "famas-bad-trip",
+          "name": "FAMAS | Bad Trip",
+          "rarity": "Restricted",
+          "base_price": 320,
+          "weight": 4.0
+        },
+        {
+          "skin_id": "p90-neoqueen",
+          "name": "P90 | Neoqueen",
+          "rarity": "Restricted",
+          "base_price": 360,
+          "weight": 4.0
+        },
+        {
+          "skin_id": "mac-10-sakkaku",
+          "name": "MAC-10 | Sakkaku",
+          "rarity": "Restricted",
+          "base_price": 340,
+          "weight": 4.0
+        },
+        {
+          "skin_id": "tec-9-rebel",
+          "name": "Tec-9 | Rebel",
+          "rarity": "Restricted",
+          "base_price": 330,
+          "weight": 4.0
+        },
+        {
+          "skin_id": "awp-chromatic-aberration",
+          "name": "AWP | Chromatic Aberration",
+          "rarity": "Classified",
+          "base_price": 1100,
+          "weight": 1.7
+        },
+        {
+          "skin_id": "ssg08-turbo-peek",
+          "name": "SSG 08 | Turbo Peek",
+          "rarity": "Classified",
+          "base_price": 850,
+          "weight": 1.0
+        },
+        {
+          "skin_id": "aug-tom-cat",
+          "name": "AUG | Tom Cat",
+          "rarity": "Classified",
+          "base_price": 800,
+          "weight": 0.5
+        },
+        {
+          "skin_id": "m4a4-temukau",
+          "name": "M4A4 | Temukau",
+          "rarity": "Covert",
+          "base_price": 3200,
+          "weight": 0.4
+        },
+        {
+          "skin_id": "ump-45-wild-child",
+          "name": "UMP-45 | Wild Child",
+          "rarity": "Covert",
+          "base_price": 2800,
+          "weight": 0.24
+        },
+        {
+          "skin_id": "sport-gloves-pandoras-box",
+          "name": "★ Sport Gloves | Pandora's Box",
+          "rarity": "Special",
+          "base_price": 12500,
+          "weight": 0.14
+        },
+        {
+          "skin_id": "specialist-gloves-fade",
+          "name": "★ Specialist Gloves | Fade",
+          "rarity": "Special",
+          "base_price": 10500,
+          "weight": 0.12
+        }
+      ]
+    },
+    {
+      "id": "classified_covert",
+      "name": "Classified Covert Case",
+      "price": 750,
+      "cooldown_hours": null,
+      "accent": "#d32ce6",
+      "items": [
+        {
+          "skin_id": "usp-s-cortex",
+          "name": "USP-S | Cortex",
+          "rarity": "Classified",
+          "base_price": 280,
+          "weight": 22
+        },
+        {
+          "skin_id": "awp-atheris",
+          "name": "AWP | Atheris",
+          "rarity": "Classified",
+          "base_price": 320,
+          "weight": 20
+        },
+        {
+          "skin_id": "m4a1-s-decimator",
+          "name": "M4A1-S | Decimator",
+          "rarity": "Classified",
+          "base_price": 380,
+          "weight": 18
+        },
+        {
+          "skin_id": "ak-47-point-disarray",
+          "name": "AK-47 | Point Disarray",
+          "rarity": "Classified",
+          "base_price": 460,
+          "weight": 16
+        },
+        {
+          "skin_id": "ak-47-asiimov",
+          "name": "AK-47 | Asiimov",
+          "rarity": "Classified",
+          "base_price": 520,
+          "weight": 12
+        },
+        {
+          "skin_id": "m4a1-s-printstream",
+          "name": "M4A1-S | Printstream",
+          "rarity": "Classified",
+          "base_price": 640,
+          "weight": 5
+        },
+        {
+          "skin_id": "awp-asiimov",
+          "name": "AWP | Asiimov",
+          "rarity": "Covert",
+          "base_price": 1100,
+          "weight": 2.2
+        },
+        {
+          "skin_id": "ak-47-fire-serpent",
+          "name": "AK-47 | Fire Serpent",
+          "rarity": "Covert",
+          "base_price": 1600,
+          "weight": 1.6
+        },
+        {
+          "skin_id": "m4a4-howl",
+          "name": "M4A4 | Howl",
+          "rarity": "Covert",
+          "base_price": 2600,
+          "weight": 1.2
+        },
+        {
+          "skin_id": "karambit-doppler",
+          "name": "★ Karambit | Doppler",
+          "rarity": "Special",
+          "base_price": 6800,
+          "weight": 1.1
+        },
+        {
+          "skin_id": "butterfly-knife-fade",
+          "name": "★ Butterfly Knife | Fade",
+          "rarity": "Special",
+          "base_price": 9800,
+          "weight": 0.9
+        }
+      ]
+    },
+    {
+      "id": "gloves_knives",
+      "name": "Gloves & Knives Case",
+      "price": 1500,
+      "cooldown_hours": null,
+      "accent": "#ffb900",
+      "items": [
+        {
+          "skin_id": "gut-knife-forest-ddpat",
+          "name": "★ Gut Knife | Forest DDPAT",
+          "rarity": "Special",
+          "base_price": 900,
+          "weight": 18
+        },
+        {
+          "skin_id": "shadow-daggers-urban-masked",
+          "name": "★ Shadow Daggers | Urban Masked",
+          "rarity": "Special",
+          "base_price": 1000,
+          "weight": 16
+        },
+        {
+          "skin_id": "navaja-knife-boreal-forest",
+          "name": "★ Navaja Knife | Boreal Forest",
+          "rarity": "Special",
+          "base_price": 1100,
+          "weight": 14
+        },
+        {
+          "skin_id": "nomad-knife-scorched",
+          "name": "★ Nomad Knife | Scorched",
+          "rarity": "Special",
+          "base_price": 1250,
+          "weight": 12
+        },
+        {
+          "skin_id": "stiletto-knife-forest-ddpat",
+          "name": "★ Stiletto Knife | Forest DDPAT",
+          "rarity": "Special",
+          "base_price": 1400,
+          "weight": 10
+        },
+        {
+          "skin_id": "classic-knife-slaughter",
+          "name": "★ Classic Knife | Slaughter",
+          "rarity": "Special",
+          "base_price": 1550,
+          "weight": 9
+        },
+        {
+          "skin_id": "flip-knife-night",
+          "name": "★ Flip Knife | Night",
+          "rarity": "Special",
+          "base_price": 1800,
+          "weight": 7
+        },
+        {
+          "skin_id": "huntsman-knife-boreal-forest",
+          "name": "★ Huntsman Knife | Boreal Forest",
+          "rarity": "Special",
+          "base_price": 2000,
+          "weight": 6
+        },
+        {
+          "skin_id": "hand-wraps-duct-tape",
+          "name": "★ Hand Wraps | Duct Tape",
+          "rarity": "Special",
+          "base_price": 2300,
+          "weight": 4
+        },
+        {
+          "skin_id": "driver-gloves-lunar-weave",
+          "name": "★ Driver Gloves | Lunar Weave",
+          "rarity": "Special",
+          "base_price": 2500,
+          "weight": 2.5
+        },
+        {
+          "skin_id": "talon-knife-urban-masked",
+          "name": "★ Talon Knife | Urban Masked",
+          "rarity": "Special",
+          "base_price": 3000,
+          "weight": 1.5
+        }
+      ]
+    }
+  ]
+}
