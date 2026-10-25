@@ -214,46 +214,33 @@
       card.className = 'case-card';
       card.style.setProperty('--accent', kase.accent || RARITY_COLORS['Mil-Spec']);
 
-      (kase.tags || []).slice(0, 2).forEach((tag, tagIndex) => {
+      if (kase.tags && kase.tags.length) {
         const chip = document.createElement('span');
-        chip.className = 'case-tag t' + tagIndex;
-        chip.textContent = tag;
+        chip.className = 'case-tag';
+        chip.textContent = kase.tags[0];
         card.appendChild(chip);
-      });
+      }
 
       const visual = document.createElement('div');
       visual.className = 'case-visual';
-      // Priciest pool item looms behind the opened lid — its glow spills out.
-      const topItem = kase.items.reduce(
-        (best, it) => (it.base_price > best.base_price ? it : best),
-        kase.items[0]
-      );
-      const ghost = document.createElement('div');
-      ghost.className = 'case-ghost';
-      ghost.appendChild(skinImage(topItem, '256fx256f', '', topItem.name));
-      const beams = document.createElement('div');
-      beams.className = 'case-beams';
-      visual.appendChild(beams);
-      visual.appendChild(ghost);
-      visual.appendChild(skinImage(kase, '256fx256f', 'case-img', kase.name));
+      visual.appendChild(skinImage(kase, '384fx384f', 'case-img', kase.name));
       card.appendChild(visual);
 
       const name = document.createElement('div');
       name.className = 'case-name';
       name.textContent = kase.hype_title || kase.name;
       card.appendChild(name);
-      if (kase.hype_title && kase.hype_title !== kase.name) {
-        const real = document.createElement('div');
-        real.className = 'case-real';
-        real.textContent = kase.name;
-        card.appendChild(real);
-      }
-      const price = document.createElement('div');
+
+      const sub = document.createElement('div');
+      sub.className = 'case-subtitle';
+      sub.textContent = kase.name;
+      card.appendChild(sub);
+
+      const price = document.createElement('span');
       price.className = 'case-price' + (kase.price === 0 ? ' free' : '');
-      price.innerHTML = kase.price === 0
-        ? 'Бесплатно &middot; 24ч'
-        : escapeHtml(money(kase.price));
+      price.textContent = kase.price === 0 ? 'БЕСПЛАТНО • 24Ч' : money(kase.price);
       card.appendChild(price);
+
       card.addEventListener('click', () => openCaseModal(kase));
       grid.appendChild(card);
     });
