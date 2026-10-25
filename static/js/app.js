@@ -32,6 +32,8 @@
   const REEL_MS = 6500;
   const REEL_CARD_W = 120;
   const REEL_GAP = 10;
+  const REFERRAL_LINK_TEXT = 'Заходи и забирай 25 бесплатных попыток!';
+  const BRAG_HEADER_NOTE = 'CS:GO Case Battle • Игра про топовые скины';
   const FALLBACK_IMG =
     'data:image/svg+xml;utf8,' +
     encodeURIComponent(
@@ -41,7 +43,10 @@
       '</svg>'
     );
 
-  const state = { user: null, cases: [], inventory: [], view: 'cases', busy: false };
+  const state = {
+    user: null, cases: [], inventory: [], view: 'cases', busy: false,
+    botUsername: '', lastWinner: null,
+  };
 
   const $ = (id) => document.getElementById(id);
 
@@ -408,18 +413,64 @@
     }
   }
 
-  /* ---------- Result modal ---------- */
+  /* ---------- Result (drop) modal ---------- */
+
+  function isElite(rarity) {
+    return rarity === 'Covert' || rarity === 'Special';
+  }
+
+  // Knives and gloves both share the "Special" rarity — give them a legend label.
+  function rarityRuLabel(item) {
+    if (item.rarity !== 'Special') return RARITY_RU[item.rarity] || item.rarity;
+    const en = (item.name_en || '').toLowerCase();
+    const ru = (item.name || '').toLowerCase();
+    if (en.includes('knife') || ru.includes('нож')) return 'Легендарный нож';
+    if (en.includes('gloves') || en.includes('hand wraps') || ru.includes('перчат')) {
+      return 'Легендарные перчатки';
+    }
+    return '★ Экстраординарное';
+  }
+
+  function spawnParticles(container, count) {
+    for (let i = 0; i < count; i += 1) {
+      const dot = document.createElement('span');
+      dot.className = 'particle';
+      dot.style.left = (4 + Math.random() * 92) + '%';
+      dot.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      dot.style.animationDelay = (Math.random() * 2.2) + 's';
+      const size = 3 + Math.random() * 4;
+      dot.style.width = size + 'px';
+      dot.style.height = size + 'px';
+      container.appendChild(dot);
+    }
+  }
+
+  function countUpPrice(el, target) {
+    const started = performance.now();
+    const duration = 900;
+    const step = (now) => {
+      const k = Math.min(1, (now - started) / duration);
+      const eased = 1 - Math.pow(1 - k, 3);
+      el.textContent = money(target * eased);
+      if (k < 1) requestAnimationFrame(step);
+      else el.textContent = money(target);
+    };
+    requestAnimationFrame(step);
+  }
 
   function showResult(winner) {
     hideModal('reel-modal');
+    state.lastWinner = winner;
     const color = RARITY_COLORS[winner.rarity] || '#8b93a7';
+    const elite = isElite(winner.rarity);
     const card = $('drop-card');
     card.style.setProperty('--rc', color);
+    card.classList.toggle('elite', elite);
     card.innerHTML = '';
 
     const rarity = document.createElement('div');
     rarity.className = 'drop-rarity';
-    rarity.textContent = RARITY_RU[winner.rarity] || winner.rarity;
+    rarity.textContent = rarityRuLabel(winner);
     card.appendChild(rarity);
     card.appendChild(skinImage(winner, '360fx360f', 'drop-img', winner.name));
 
@@ -441,8 +492,13 @@
 
     const price = document.createElement('div');
     price.className = 'drop-price';
-    price.textContent = money(winner.price);
     card.appendChild(price);
+    countUpPrice(price, Number(winner.price) || 0);
+
+    if (elite) {
+      spawnParticles(card, 22);
+      hapticSuccess();
+    }
 
     const sellButton = $('btn-sell');
     sellButton.disabled = false;
@@ -458,6 +514,69 @@
     };
     showModal('result-modal');
   }
+
+  /* ---------- Brag (share) modal ---------- */
+
+  function referralLink() {
+    if (state.botUsername) {
+      return 'https://t.me/' + state.botUsername + '?start=r' + USER_ID;
+    }
+    return window.location.origin + window.location.pathname + '?user_id=' + USER_ID;
+  }
+
+  function bragText(winner) {
+    return 'Я выбил скин ' + winner.name + ' (' + money(winner.price) + ')';
+  }
+
+  function openShareModal(winner) {
+    const color = RARITY_COLORS[winner.rarity] || '#8b93a7';
+    const visual = $('brag-visual');
+    visual.style.setProperty('--rc', color);
+    $('brag-text').textContent = bragText(winner);
+    $('brag-rarity').textContent = rarityRuLabel(winner);
+    const img = $('brag-img');
+    img.src = cdn(winner.image, '360fx360f');
+    img.onerror = () => { img.onerror = null; img.src = FALLBACK_IMG; };
+    showModal('share-modal');
+  }
+
+  async function shareToStory(winner) {
+    const text = bragText(winner) + ' — ' + referralLink();
+    if (tg && typeof tg.shareToStory === 'function') {
+      try {
+        tg.shareToStory({ media: cdn(winner.image, '360fx360f'), text: text });
+        return;
+      } catch (err) { /* fall through to the manual fallback */ }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('Текст скопирован — вставьте его в историю Telegram', 'success');
+    } catch (err) {
+      toast('Скопируйте текст: ' + text, 'success');
+    }
+  }
+
+  function shareToFriend(winner) {
+    const text = 'Я выбил ' + winner.name + ' за ' + money(winner.price) + '! ' +
+      REFERRAL_LINK_TEXT;
+    const url = 'https://t.me/share/url?url=' + encodeURIComponent(referralLink()) +
+      '&text=' + encodeURIComponent(text);
+    if (tg && typeof tg.openTelegramLink === 'function') tg.openTelegramLink(url);
+    else window.open(url, '_blank');
+  }
+
+  $('btn-brag').addEventListener('click', () => {
+    if (state.lastWinner) {
+      hapticImpact();
+      openShareModal(state.lastWinner);
+    }
+  });
+  $('btn-story').addEventListener('click', () => {
+    if (state.lastWinner) shareToStory(state.lastWinner);
+  });
+  $('btn-friend').addEventListener('click', () => {
+    if (state.lastWinner) shareToFriend(state.lastWinner);
+  });
 
   /* ---------- Selling ---------- */
 
@@ -586,9 +705,11 @@
       const results = await Promise.all([
         api('/api/cases'),
         api('/api/user/' + USER_ID),
+        api('/api/config').catch(() => ({ bot_username: '' })),
       ]);
       state.cases = results[0].cases;
       state.user = results[1];
+      state.botUsername = results[2].bot_username || '';
       renderHeader();
       renderGrid();
     } catch (err) {

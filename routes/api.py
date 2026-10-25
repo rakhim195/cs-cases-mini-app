@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import settings
 from core.database import get_session
 from services import game
 from services.catalog import CaseNotFoundError, case_public, list_cases
@@ -30,6 +31,12 @@ class SellItemRequest(BaseModel):
 async def get_cases() -> dict:
     """Full case catalog with prices and item pools."""
     return {"cases": [case_public(case) for case in list_cases()]}
+
+
+@router.get("/config")
+async def get_config() -> dict:
+    """Public Mini App configuration (referral deep-link base, etc.)."""
+    return {"bot_username": settings.bot_username}
 
 
 @router.get("/user/{user_id}")

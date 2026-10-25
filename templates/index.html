@@ -95,8 +95,35 @@
       <h2 class="result-title">Вам выпало</h2>
       <div class="drop-card" id="drop-card"></div>
       <div class="result-actions">
-        <button class="btn-primary" type="button" id="btn-sell"></button>
-        <button class="btn-ghost" type="button" id="btn-keep">Оставить в коллекции</button>
+        <button class="btn-brag" type="button" id="btn-brag">✨ Похвастаться</button>
+        <div class="result-row">
+          <button class="btn-primary" type="button" id="btn-sell"></button>
+          <button class="btn-ghost" type="button" id="btn-keep">Оставить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="share-modal">
+    <div class="modal share-modal">
+      <button class="modal-close" type="button" data-close="share-modal">✕</button>
+      <h2 class="share-title">Поделиться дропом</h2>
+      <div class="brag-card" id="brag-card">
+        <div class="brag-header">
+          <span class="brag-brand">CS:GO Case Battle</span>
+          <span class="brag-sep">•</span>
+          <span class="brag-tagline">Игра про топовые скины</span>
+        </div>
+        <div class="brag-text" id="brag-text"></div>
+        <div class="brag-visual" id="brag-visual">
+          <img class="brag-img" id="brag-img" alt="">
+          <div class="brag-rarity" id="brag-rarity"></div>
+        </div>
+        <div class="brag-banner">Сможешь побить? По моей ссылке — 25 бесплатных попыток</div>
+      </div>
+      <div class="share-actions">
+        <button class="btn-story" type="button" id="btn-story">Выложить в историю</button>
+        <button class="btn-friend" type="button" id="btn-friend">Отправить другу</button>
       </div>
     </div>
   </div>

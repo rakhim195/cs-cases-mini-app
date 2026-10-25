@@ -756,6 +756,16 @@ button { font-family: inherit; }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
+.drop-card.elite {
+  border-color: rgba(255, 194, 51, 0.7);
+  animation: drop-in 0.45s cubic-bezier(0.2, 1.2, 0.4, 1) both,
+    elite-glow 2.2s ease-in-out 0.5s infinite;
+}
+@keyframes elite-glow {
+  0%, 100% { box-shadow: 0 0 44px rgba(255, 194, 51, 0.3), var(--shadow-card); }
+  50% { box-shadow: 0 0 64px rgba(255, 194, 51, 0.55), var(--shadow-card); }
+}
+
 .drop-rarity {
   font-family: var(--font-display);
   font-size: 11.5px;
@@ -800,11 +810,212 @@ button { font-family: inherit; }
 }
 
 .result-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   margin-top: 16px;
 }
+
+.result-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 10px;
+}
+
+/* ---------- Brag button ---------- */
+
+.btn-brag {
+  border: 1px solid rgba(255, 194, 51, 0.55);
+  border-radius: 13px;
+  padding: 14px 22px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--brand-ink);
+  background: linear-gradient(135deg, #ffe27a, var(--brand) 45%, var(--brand-2));
+  box-shadow:
+    0 0 26px rgba(255, 194, 51, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  animation: brag-pulse 2.2s ease-in-out infinite;
+}
+.btn-brag:hover { filter: brightness(1.07); }
+.btn-brag:active { transform: scale(0.97); }
+
+@keyframes brag-pulse {
+  0%, 100% { box-shadow: 0 0 18px rgba(255, 194, 51, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+  50% { box-shadow: 0 0 34px rgba(255, 194, 51, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+}
+
+/* ---------- Gold particles (elite drops) ---------- */
+
+.particle {
+  position: absolute;
+  bottom: -6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff2c0 0%, #ffc233 55%, rgba(255, 138, 0, 0) 80%);
+  box-shadow: 0 0 8px rgba(255, 194, 51, 0.9);
+  pointer-events: none;
+  animation: particle-rise linear infinite;
+  z-index: 2;
+}
+
+@keyframes particle-rise {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  12% { opacity: 1; }
+  85% { opacity: 0.85; }
+  100% { transform: translateY(-190px) scale(0.35); opacity: 0; }
+}
+
+/* ---------- Share (Nomerok) modal ---------- */
+
+.share-modal { text-align: center; }
+
+.share-title {
+  margin: 2px 0 14px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.brag-card {
+  --rc: var(--brand);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 194, 51, 0.65);
+  background:
+    radial-gradient(120% 90% at 50% -10%, rgba(255, 194, 51, 0.14), transparent 55%),
+    linear-gradient(180deg, #131b33, #0a0f1e);
+  box-shadow:
+    0 0 0 1px rgba(255, 194, 51, 0.25),
+    0 0 34px rgba(255, 194, 51, 0.28),
+    inset 0 0 44px rgba(255, 194, 51, 0.06);
+  text-align: center;
+}
+
+.brag-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px 4px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+}
+.brag-brand {
+  background: linear-gradient(135deg, #ffe27a, var(--brand-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.brag-sep { color: rgba(255, 194, 51, 0.7); }
+.brag-tagline { color: var(--muted); font-weight: 600; }
+
+.brag-text {
+  padding: 8px 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.brag-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 190px;
+  margin: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--rc) 45%, var(--line));
+  background:
+    radial-gradient(120% 100% at 50% 118%, color-mix(in srgb, var(--rc) 45%, transparent), transparent 68%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
+  box-shadow: inset 0 0 34px color-mix(in srgb, var(--rc) 20%, transparent);
+}
+.brag-img {
+  width: 240px;
+  max-width: 82%;
+  height: 140px;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.65));
+}
+.brag-rarity {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rc);
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--rc) 60%, transparent);
+  background: rgba(5, 9, 20, 0.75);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--rc) 45%, transparent);
+}
+
+.brag-banner {
+  padding: 11px 16px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brand);
+  background: linear-gradient(180deg, rgba(255, 194, 51, 0.10), rgba(255, 194, 51, 0.16));
+  border-top: 1px solid rgba(255, 194, 51, 0.35);
+}
+
+.share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn-story {
+  border: none;
+  border-radius: 13px;
+  padding: 14px 22px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--brand-ink);
+  background: linear-gradient(135deg, #ff9d2e, var(--brand-2));
+  box-shadow: 0 8px 22px rgba(255, 138, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.btn-story:hover { filter: brightness(1.07); }
+.btn-story:active { transform: scale(0.97); }
+
+.btn-friend {
+  border: 1px solid rgba(120, 170, 255, 0.4);
+  border-radius: 13px;
+  padding: 13px 22px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ec3ff;
+  background: rgba(75, 105, 255, 0.12);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btn-friend:hover { background: rgba(75, 105, 255, 0.22); }
 
 /* ---------- Toast ---------- */
 

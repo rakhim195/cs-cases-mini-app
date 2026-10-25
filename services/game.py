@@ -9,11 +9,12 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import InventoryItem, User
+from models import InventoryItem, Referral, User
 from services import rng
 from services.catalog import CaseNotFoundError, get_case, list_cases
 
 REEL_LENGTH = 30
+REFERRAL_PAYOUT_RATE = 0.05
 
 
 class CooldownError(Exception):
@@ -111,6 +112,35 @@ def _pool_display(
     return payload
 
 
+async def _pay_referrer(
+    session: AsyncSession, friend: User, item_name: str, item_price: float
+) -> float:
+    """Credit 5% of a referred friend's drop to their referrer.
+
+    Returns the payout amount (0.0 when there is no valid referrer).
+    """
+    referrer_id = friend.referrer_id
+    if not referrer_id or referrer_id == friend.id:
+        return 0.0
+    referrer = await session.get(User, referrer_id)
+    if referrer is None:
+        return 0.0
+    payout = round(float(item_price) * REFERRAL_PAYOUT_RATE, 2)
+    if payout <= 0:
+        return 0.0
+    referrer.referral_balance = round(referrer.referral_balance + payout, 2)
+    session.add(
+        Referral(
+            referrer_id=referrer.id,
+            friend_id=friend.id,
+            friend_name=(friend.first_name or friend.username or str(friend.id))[:128],
+            item_name=item_name[:255],
+            item_price=float(item_price),
+        )
+    )
+    return payout
+
+
 async def open_case(
     session: AsyncSession, user_id: int, case_id: str
 ) -> dict[str, Any]:
@@ -154,6 +184,9 @@ async def open_case(
     user.cases_opened += 1
     await session.flush()
 
+    display_name = ("StatTrak™ " if is_stat_trak else "") + pool_item["name"]
+    referral_payout = await _pay_referrer(session, user, display_name, price)
+
     winner = _pool_display(
         pool_item,
         case.id,
@@ -170,7 +203,12 @@ async def open_case(
     reel.append(winner)
 
     await session.commit()
-    return {"winner": winner, "reel": reel, "new_balance": user.balance}
+    return {
+        "winner": winner,
+        "reel": reel,
+        "new_balance": user.balance,
+        "referral_payout": referral_payout,
+    }
 
 
 async def sell_item(
