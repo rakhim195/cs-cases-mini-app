@@ -11,7 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import InventoryItem, Referral, User
 from services import rng
-from services.catalog import CaseNotFoundError, get_case, list_cases
+from services.catalog import (
+    CaseNotFoundError,
+    get_case,
+    get_skin,
+    list_cases,
+)
 
 # Tail after the winner (REEL_LENGTH - winner index) stays >= 25 items.
 REEL_LENGTH = 101
@@ -271,7 +276,7 @@ async def sell_item(
 
 
 def _inventory_public(item: InventoryItem) -> dict[str, Any]:
-    return {
+    payload = {
         "item_id": item.id,
         "skin_id": item.skin_id,
         "case_id": item.case_id,
@@ -284,6 +289,12 @@ def _inventory_public(item: InventoryItem) -> dict[str, Any]:
             item.created_at.isoformat() if item.created_at else None
         ),
     }
+    # Skins carry their CDN image in the catalog, not on the inventory row.
+    skin = get_skin(item.skin_id)
+    if skin is not None:
+        payload["image"] = skin.get("image")
+        payload["name_en"] = skin.get("name_en")
+    return payload
 
 
 async def inventory_list(

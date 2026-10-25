@@ -12,7 +12,7 @@
     'Restricted': '#8847ff',
     'Classified': '#d32ce6',
     'Covert': '#eb4b4b',
-    'Special': '#ffb900',
+    'Special': '#ffd700',
   };
   const RARITY_RU = {
     'Mil-Spec': 'Армейское качество',
@@ -85,13 +85,28 @@
     return size ? url + '/' + size : url;
   }
 
+  // skin_id -> catalog entry, so inventory rows can resolve CDN images even
+  // when the API payload omits them.
+  const skinImageIndex = new Map();
+
+  function indexSkins() {
+    state.cases.forEach((kase) => {
+      kase.items.forEach((item) => {
+        if (!skinImageIndex.has(item.skin_id)) {
+          skinImageIndex.set(item.skin_id, item);
+        }
+      });
+    });
+  }
+
   function skinImage(item, size, cls, alt) {
     const img = document.createElement('img');
     img.className = cls || '';
     img.alt = alt || '';
     img.loading = 'lazy';
     img.decoding = 'async';
-    img.src = cdn(item.image, size || '256fx256f');
+    const meta = item.image ? item : skinImageIndex.get(item.skin_id);
+    img.src = cdn(meta && meta.image, size || '256fx256f');
     img.addEventListener('error', () => { img.src = FALLBACK_IMG; }, { once: true });
     return img;
   }
@@ -1568,6 +1583,7 @@
       state.cases = results[0].cases;
       state.user = results[1];
       state.botUsername = results[2].bot_username || '';
+      indexSkins();
       renderHeader();
       renderGrid();
     } catch (err) {
