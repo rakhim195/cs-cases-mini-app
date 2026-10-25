@@ -70,6 +70,45 @@
       <button class="btn-primary btn-block" type="button" id="btn-upgrade" disabled>Апгрейд</button>
     </section>
 
+    <section class="screen hidden" id="screen-battle">
+      <div class="screen-head">
+        <h1 class="screen-title">Баттлы 1v1</h1>
+        <span class="screen-count" id="battle-lobby-count"></span>
+      </div>
+
+      <div class="battle-create">
+        <div class="battle-create-title">Создать битву</div>
+        <div class="battle-case-chips" id="battle-case-chips"></div>
+        <div class="battle-controls">
+          <div class="battle-rounds">
+            <span class="ctl-label">Раунды</span>
+            <div class="seg" id="battle-rounds-seg">
+              <button type="button" data-rounds="1">1</button>
+              <button type="button" data-rounds="2" class="active">2</button>
+              <button type="button" data-rounds="3">3</button>
+            </div>
+          </div>
+          <label class="battle-bot-toggle">
+            <input type="checkbox" id="battle-vs-bot" checked>
+            <span class="switch"></span>
+            <span>Играть с ботом</span>
+          </label>
+        </div>
+        <div class="battle-create-row">
+          <div class="battle-cost" id="battle-cost">0 ₽</div>
+          <button class="btn-primary" type="button" id="btn-battle-create">Создать битву</button>
+        </div>
+      </div>
+
+      <div class="battle-lobby-head">Открытые лобби</div>
+      <div class="battle-lobby" id="battle-lobby"></div>
+      <div class="empty-state hidden" id="battle-lobby-empty">
+        <div class="empty-icon">⚔️</div>
+        <div class="empty-title">Пока никого</div>
+        <div class="empty-sub">Создай битву с ботом или жди соперника</div>
+      </div>
+    </section>
+
     <section class="screen hidden" id="screen-collection">
       <div class="screen-head">
         <h1 class="screen-title">Моя коллекция</h1>
@@ -96,6 +135,10 @@
     <button class="tab active" type="button" data-view="cases">
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 7v10l8 4 8-4V7l-8-4Zm0 2.2L17.6 8 12 10.8 6.4 8 12 5.2ZM6 9.9l5 2.5v6.6l-5-2.5V9.9Zm7 9.1v-6.6l5-2.5v6.6l-5 2.5Z" fill="currentColor"/></svg>
       <span>Кейсы</span>
+    </button>
+    <button class="tab" type="button" data-view="battle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l13 13M20 4 7 17M4 21l3-3M20 21l-3-3"/></svg>
+      <span>Баттлы</span>
     </button>
     <button class="tab" type="button" data-view="upgrade">
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4.5 10.5h4.4V21h6.2V10.5h4.4L12 3Z" fill="currentColor"/></svg>
@@ -168,6 +211,36 @@
       <div class="share-actions">
         <button class="btn-story" type="button" id="btn-story">Выложить в историю</button>
         <button class="btn-friend" type="button" id="btn-friend">Отправить другу</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="battle-arena-modal">
+    <div class="modal battle-arena-modal">
+      <h2 class="reel-title" id="arena-title">Битва</h2>
+      <div class="arena-grid">
+        <div class="arena-col" id="arena-col-p1">
+          <div class="arena-name" id="arena-name-p1">Ты</div>
+          <div class="arena-drops" id="arena-drops-p1"></div>
+          <div class="arena-sum" id="arena-sum-p1">0 ₽</div>
+        </div>
+        <div class="arena-vs">VS</div>
+        <div class="arena-col" id="arena-col-p2">
+          <div class="arena-name" id="arena-name-p2">Соперник</div>
+          <div class="arena-drops" id="arena-drops-p2"></div>
+          <div class="arena-sum" id="arena-sum-p2">0 ₽</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="battle-result-modal">
+    <div class="modal battle-result-modal">
+      <h2 class="result-title" id="battle-result-title">Победа!</h2>
+      <div class="battle-result-totals" id="battle-result-totals"></div>
+      <div class="battle-result-skins" id="battle-result-skins"></div>
+      <div class="result-actions">
+        <button class="btn-primary btn-block" type="button" id="btn-battle-claim">Забрать в инвентарь</button>
       </div>
     </div>
   </div>

@@ -186,6 +186,7 @@
   function switchView(view) {
     state.view = view;
     $('screen-cases').classList.toggle('hidden', view !== 'cases');
+    $('screen-battle').classList.toggle('hidden', view !== 'battle');
     $('screen-upgrade').classList.toggle('hidden', view !== 'upgrade');
     $('screen-collection').classList.toggle('hidden', view !== 'collection');
     document.querySelectorAll('.tab').forEach((tab) => {
@@ -194,6 +195,7 @@
     window.scrollTo({ top: 0 });
     if (view === 'collection') refreshInventory();
     if (view === 'upgrade') initUpgradeScreen();
+    if (view === 'battle') initBattleScreen();
   }
 
   document.querySelectorAll('.tab').forEach((tab) => {
@@ -1176,6 +1178,366 @@
     openDailyModal(true);
   });
   $('btn-daily-claim').addEventListener('click', claimDaily);
+
+  /* ---------- Case battles (1v1 / bot duels) ---------- */
+
+  const battleState = {
+    caseId: null,
+    rounds: 2,
+    vsBot: true,
+  };
+
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  function battleCase() {
+    return state.cases.find((k) => k.id === battleState.caseId) || null;
+  }
+
+  function updateBattleCost() {
+    const kase = battleCase();
+    const cost = kase ? kase.price * battleState.rounds : 0;
+    $('battle-cost').textContent = 'Стоимость: ' + money(cost);
+  }
+
+  function renderBattleChips() {
+    const wrap = $('battle-case-chips');
+    wrap.innerHTML = '';
+    state.cases
+      .filter((k) => k.price > 0)
+      .forEach((kase) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'battle-chip' + (kase.id === battleState.caseId ? ' active' : '');
+        chip.style.setProperty('--accent', kase.accent || '#4b69ff');
+        const img = document.createElement('img');
+        img.src = cdn(kase.image, '128fx128f');
+        img.alt = kase.name;
+        chip.appendChild(img);
+        const price = document.createElement('span');
+        price.className = 'bc-price';
+        price.textContent = kase.price === 0 ? 'FREE' : Math.round(kase.price) + ' ₽';
+        chip.appendChild(price);
+        chip.addEventListener('click', () => {
+          hapticImpact();
+          battleState.caseId = kase.id;
+          renderBattleChips();
+          updateBattleCost();
+        });
+        wrap.appendChild(chip);
+      });
+  }
+
+  function renderLobby(battles) {
+    const listEl = $('battle-lobby');
+    listEl.innerHTML = '';
+    $('battle-lobby-empty').classList.toggle('hidden', battles.length > 0);
+    $('battle-lobby-count').textContent = battles.length + ' ' +
+      plural(battles.length, 'лобби', 'лобби', 'лобби');
+    battles.forEach((lobby) => {
+      const card = document.createElement('div');
+      card.className = 'battle-lobby-card';
+      const img = document.createElement('img');
+      img.src = cdn(lobby.case_image, '128fx128f');
+      img.alt = lobby.case_name;
+      const info = document.createElement('div');
+      info.className = 'blc-info';
+      const name = document.createElement('div');
+      name.className = 'blc-name';
+      name.textContent = lobby.creator_name;
+      const meta = document.createElement('div');
+      meta.className = 'blc-meta';
+      meta.textContent = lobby.case_name + ' • ' + lobby.rounds + ' ' +
+        plural(lobby.rounds, 'раунд', 'раунда', 'раундов') + ' • ' + money(lobby.cost);
+      info.appendChild(name);
+      info.appendChild(meta);
+      const join = document.createElement('button');
+      join.type = 'button';
+      join.className = 'btn-primary blc-join';
+      join.textContent = lobby.creator_id === USER_ID ? 'Открыть' : 'Войти';
+      join.addEventListener('click', () => {
+        if (lobby.creator_id === USER_ID) openExistingBattle(lobby.id);
+        else joinBattle(lobby.id);
+      });
+      card.appendChild(img);
+      card.appendChild(info);
+      card.appendChild(join);
+      listEl.appendChild(card);
+    });
+  }
+
+  async function refreshLobby() {
+    try {
+      const payload = await api('/api/battles/active');
+      renderLobby(payload.battles);
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  async function initBattleScreen() {
+    if (!battleState.caseId && state.cases.length) {
+      battleState.caseId = state.cases.filter((k) => k.price > 0)[0].id;
+    }
+    renderBattleChips();
+    updateBattleCost();
+    refreshLobby();
+  }
+
+  async function createBattle() {
+    const kase = battleCase();
+    if (!kase || state.busy) return;
+    state.busy = true;
+    const button = $('btn-battle-create');
+    button.disabled = true;
+    button.textContent = 'Создаём…';
+    hapticImpact();
+    try {
+      const result = await api('/api/battles/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: USER_ID,
+          case_id: battleState.caseId,
+          rounds: battleState.rounds,
+          is_bot_opponent: battleState.vsBot,
+        }),
+      });
+      animateBalance(result.new_balance);
+      if (result.battle.status === 'finished') {
+        await playBattleArena(result, USER_ID);
+      } else {
+        toast('Битва создана — ждём соперника', 'success');
+        refreshLobby();
+      }
+    } catch (err) {
+      hapticError();
+      toast(err.message, 'error');
+    } finally {
+      state.busy = false;
+      button.disabled = false;
+      button.textContent = 'Создать битву';
+    }
+  }
+
+  async function joinBattle(battleId) {
+    if (state.busy) return;
+    state.busy = true;
+    hapticImpact();
+    try {
+      const result = await api('/api/battles/' + battleId + '/join', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: USER_ID }),
+      });
+      animateBalance(result.new_balance);
+      await playBattleArena(result, USER_ID);
+      refreshLobby();
+    } catch (err) {
+      hapticError();
+      toast(err.message, 'error');
+    } finally {
+      state.busy = false;
+    }
+  }
+
+  async function openExistingBattle(battleId) {
+    try {
+      const result = await api('/api/battles/' + battleId + '/state');
+      if (result.battle.status === 'finished') {
+        await playBattleArena(result, USER_ID);
+        refreshLobby();
+      } else {
+        toast('Соперник ещё не найден', 'success');
+      }
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  function arenaDropCell() {
+    const cell = document.createElement('div');
+    cell.className = 'arena-drop spinning';
+    return cell;
+  }
+
+  // Round-by-round synchronized reveal: both cells whirl through the case
+  // pool, then settle on the real drop together.
+  async function playBattleArena(statePayload, viewerId) {
+    const b = statePayload.battle;
+    const viewerIsP1 = b.creator_id === viewerId;
+    $('arena-title').textContent = 'Битва: ' + b.case_name;
+    $('arena-name-p1').textContent = viewerIsP1 ? 'Ты' : b.creator_name;
+    $('arena-name-p2').textContent = viewerIsP1
+      ? (b.is_bot ? 'Бот Кейсик' : b.opponent_name)
+      : 'Ты';
+    const p1Cells = [];
+    const p2Cells = [];
+    const p1Wrap = $('arena-drops-p1');
+    const p2Wrap = $('arena-drops-p2');
+    p1Wrap.innerHTML = '';
+    p2Wrap.innerHTML = '';
+    $('arena-sum-p1').textContent = '0 ₽';
+    $('arena-sum-p2').textContent = '0 ₽';
+    $('arena-col-p1').classList.remove('win', 'lose');
+    $('arena-col-p2').classList.remove('win', 'lose');
+    showModal('battle-arena-modal');
+
+    const kase = state.cases.find((k) => k.id === b.case_id);
+    const pool = kase ? kase.items : [];
+    let sumP1 = 0;
+    let sumP2 = 0;
+
+    for (const round of statePayload.rounds) {
+      const p1Cell = arenaDropCell();
+      const p2Cell = arenaDropCell();
+      p1Wrap.appendChild(p1Cell);
+      p2Wrap.appendChild(p2Cell);
+      p1Cells.push(p1Cell);
+      p2Cells.push(p2Cell);
+      hapticImpact();
+      // Synchronized whirl on both sides.
+      const spinner = setInterval(() => {
+        const randomItem = pool[Math.floor(Math.random() * pool.length)];
+        const randomItem2 = pool[Math.floor(Math.random() * pool.length)];
+        for (const [cell, item] of [[p1Cell, randomItem], [p2Cell, randomItem2]]) {
+          cell.innerHTML = '';
+          if (item && item.image) {
+            const img = document.createElement('img');
+            img.src = cdn(item.image, '128fx128f');
+            cell.appendChild(img);
+          }
+        }
+      }, 90);
+      await sleep(1100);
+      clearInterval(spinner);
+      // Settle both cells on the actual drops.
+      settleCell(p1Cell, round.p1);
+      settleCell(p2Cell, round.p2);
+      sumP1 += round.p1 ? round.p1.price : 0;
+      sumP2 += round.p2 ? round.p2.price : 0;
+      $('arena-sum-p1').textContent = money(sumP1);
+      $('arena-sum-p2').textContent = money(sumP2);
+      await sleep(700);
+    }
+
+    await sleep(500);
+    const viewerWon = b.winner_id === viewerId;
+    const draw = b.winner_id === null;
+    if (!draw) {
+      (viewerIsP1 ? $('arena-col-p1') : $('arena-col-p2'))
+        .classList.add(viewerWon ? 'win' : 'lose');
+      (viewerIsP1 ? $('arena-col-p2') : $('arena-col-p1'))
+        .classList.add(viewerWon ? 'lose' : 'win');
+    }
+    hapticSuccess();
+    await sleep(900);
+    hideModal('battle-arena-modal');
+    showBattleResult(statePayload, viewerId, viewerIsP1, viewerWon, draw);
+  }
+
+  function settleCell(cell, drop) {
+    cell.classList.remove('spinning');
+    cell.classList.add('revealed');
+    cell.innerHTML = '';
+    if (!drop) {
+      cell.textContent = '—';
+      return;
+    }
+    cell.style.setProperty('--rc', RARITY_COLORS[drop.rarity] || '#8b93a7');
+    if (drop.image) {
+      const img = document.createElement('img');
+      img.src = cdn(drop.image, '256fx256f');
+      img.alt = drop.name;
+      cell.appendChild(img);
+    }
+    const price = document.createElement('span');
+    price.className = 'ad-price';
+    price.textContent = money(drop.price);
+    cell.appendChild(price);
+  }
+
+  function showBattleResult(statePayload, viewerId, viewerIsP1, viewerWon, draw) {
+    const b = statePayload.battle;
+    const title = $('battle-result-title');
+    if (draw) {
+      title.textContent = 'Ничья — скины остались у вас';
+      title.style.color = '#8b93a7';
+    } else if (viewerWon) {
+      title.textContent = '🏆 Победа! Забирай всё';
+      title.style.color = '#ffc233';
+    } else {
+      title.textContent = '💀 Поражение';
+      title.style.color = '#eb4b4b';
+    }
+    const viewerTotal = viewerIsP1 ? b.total_p1_value : b.total_p2_value;
+    const otherTotal = viewerIsP1 ? b.total_p2_value : b.total_p1_value;
+    const otherName = viewerIsP1
+      ? (b.is_bot ? 'Бот Кейсик' : b.opponent_name)
+      : b.creator_name;
+    $('battle-result-totals').textContent =
+      'Ты: ' + money(viewerTotal) + ' • ' + otherName + ': ' + money(otherTotal);
+
+    const skinsEl = $('battle-result-skins');
+    skinsEl.innerHTML = '';
+    // Won skins = every drop on the table when the viewer takes all.
+    const wonSkins = viewerWon
+      ? statePayload.rounds.flatMap((r) => [r.p1, r.p2]).filter(Boolean)
+      : [];
+    if (draw) {
+      const own = statePayload.rounds
+        .map((r) => (viewerIsP1 ? r.p1 : r.p2))
+        .filter(Boolean);
+      own.forEach((drop) => skinsEl.appendChild(resultSkinCard(drop)));
+    } else if (viewerWon) {
+      wonSkins.forEach((drop) => skinsEl.appendChild(resultSkinCard(drop)));
+    } else {
+      const note = document.createElement('div');
+      note.className = 'battle-lose-note';
+      note.textContent = 'Скины ушли сопернику. Реванш?';
+      skinsEl.appendChild(note);
+    }
+    showModal('battle-result-modal');
+  }
+
+  function resultSkinCard(drop) {
+    const card = document.createElement('div');
+    card.className = 'brs-card';
+    card.style.setProperty('--rc', RARITY_COLORS[drop.rarity] || '#8b93a7');
+    if (drop.image) {
+      const img = document.createElement('img');
+      img.src = cdn(drop.image, '256fx256f');
+      img.alt = drop.name;
+      card.appendChild(img);
+    }
+    const name = document.createElement('span');
+    name.className = 'brs-name';
+    name.textContent = (drop.is_stat_trak ? 'ST™ ' : '') + drop.name;
+    const price = document.createElement('span');
+    price.className = 'brs-price';
+    price.textContent = money(drop.price);
+    card.appendChild(name);
+    card.appendChild(price);
+    return card;
+  }
+
+  $('btn-battle-create').addEventListener('click', createBattle);
+  document.querySelectorAll('#battle-rounds-seg button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      hapticImpact();
+      battleState.rounds = Number(btn.getAttribute('data-rounds'));
+      document.querySelectorAll('#battle-rounds-seg button').forEach((b2) => {
+        b2.classList.toggle('active', b2 === btn);
+      });
+      updateBattleCost();
+    });
+  });
+  $('battle-vs-bot').addEventListener('change', (event) => {
+    battleState.vsBot = event.target.checked;
+  });
+  $('btn-battle-claim').addEventListener('click', () => {
+    hapticSuccess();
+    hideModal('battle-result-modal');
+    refreshUser();
+    refreshInventory();
+  });
 
   /* ---------- Modals ---------- */
 

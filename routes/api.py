@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.database import get_session
-from services import daily, game, upgrade
+from services import battle, daily, game, upgrade
 from services.catalog import CaseNotFoundError, case_public, list_cases
 
 router = APIRouter(prefix="/api", tags=["gameplay"])
@@ -29,6 +29,17 @@ class UpgradeRequest(BaseModel):
 
 
 class DailyClaimRequest(BaseModel):
+    user_id: int
+
+
+class BattleCreateRequest(BaseModel):
+    user_id: int
+    case_id: str
+    rounds: int
+    is_bot_opponent: bool = False
+
+
+class BattleJoinRequest(BaseModel):
     user_id: int
 
 
@@ -134,6 +145,67 @@ async def upgrade_skin(
         raise HTTPException(
             status_code=404, detail="Целевой скин не найден"
         ) from None
+
+
+@router.get("/battles/active")
+async def get_active_battles(
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Open 1v1 lobbies waiting for an opponent."""
+    return await battle.list_active_battles(session)
+
+
+@router.post("/battles/create")
+async def create_battle(
+    body: BattleCreateRequest, session: AsyncSession = Depends(get_session)
+) -> dict:
+    """Open a battle lobby, or instantly duel the bot."""
+    try:
+        return await battle.create_battle(
+            session, body.user_id, body.case_id, body.rounds, body.is_bot_opponent
+        )
+    except CaseNotFoundError:
+        raise HTTPException(
+            status_code=404, detail=f"Кейс «{body.case_id}» не найден"
+        ) from None
+    except battle.BattleValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    except game.InsufficientFundsError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Недостаточно средств: нужно {exc.price:.0f} ₽",
+        ) from None
+
+
+@router.post("/battles/{battle_id}/join")
+async def join_battle(
+    battle_id: int,
+    body: BattleJoinRequest,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Player 2 pays the entry; the battle resolves instantly."""
+    try:
+        return await battle.join_battle(session, battle_id, body.user_id)
+    except battle.BattleNotFoundError:
+        raise HTTPException(status_code=404, detail="Битва не найдена") from None
+    except battle.BattleNotJoinableError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
+    except game.InsufficientFundsError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Недостаточно средств: нужно {exc.price:.0f} ₽",
+        ) from None
+
+
+@router.get("/battles/{battle_id}/state")
+async def get_battle_state(
+    battle_id: int, session: AsyncSession = Depends(get_session)
+) -> dict:
+    """Rounds, drops and the winner (hidden until the battle finishes)."""
+    try:
+        return await battle.battle_state(session, battle_id)
+    except battle.BattleNotFoundError:
+        raise HTTPException(status_code=404, detail="Битва не найдена") from None
 
 
 @router.get("/daily/status/{user_id}")
