@@ -606,12 +606,17 @@
     if (!item) return;
     hapticImpact();
     const caption = storyCaption(item);
-    const proxied = proxiedImageUrl(item);
-    if (tg && typeof tg.shareToStory === 'function' && proxied) {
+    // shareToStory needs a REAL public https URL — dataURLs open a black
+    // screen on iOS. The card is rendered server-side with Pillow.
+    const storyUrl = item.item_id
+      ? location.origin + '/api/story-card/' + item.item_id + '.png'
+      : null;
+    if (tg && typeof tg.shareToStory === 'function' && storyUrl) {
       try {
-        // Raw Steam CDN URLs showed up as BLACK stories on Telegram; the
-        // backend proxy serves the same bytes from a clean https origin.
-        tg.shareToStory({ media: proxied, text: caption });
+        tg.shareToStory(storyUrl, {
+          text: caption,
+          widget_link: { url: referralLink(), name: 'Открыть кейс' },
+        });
         return;
       } catch (err) { /* fall through to the canvas card */ }
     }
