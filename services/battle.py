@@ -1,4 +1,4 @@
-"""1v1 case battles: lobbies, instant bot duels, winner-takes-all payouts."""
+"""1v1 battles: lobbies, instant bot duels, winner-takes-all payouts."""
 
 from __future__ import annotations
 

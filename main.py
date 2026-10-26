@@ -44,9 +44,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="CS:GO Case Battle & Upgrade RNG",
-    description="Backend for the CS:GO case battle and upgrade Telegram Mini App.",
-    version="0.3.0",
+    title="Кейсик (Keysik) — CS:GO кейсы и апгрейды",
+    description="Backend of the Keysik («Кейсик») CS:GO cases and upgrades Telegram Mini App.",
+    version="0.4.0",
     lifespan=lifespan,
 )
 

@@ -90,7 +90,7 @@ def fetch_image_bytes(url: str) -> tuple[bytes, str]:
     if parsed.scheme != "https" or (parsed.hostname or "") not in ALLOWED_IMAGE_HOSTS:
         raise ValueError("host not allowed")
     request = urllib.request.Request(
-        url, headers={"User-Agent": "Mozilla/5.0 (compatible; CaseBattleBot)"}
+        url, headers={"User-Agent": "Mozilla/5.0 (compatible; KeysikBot)"}
     )
     with urllib.request.urlopen(request, timeout=12) as resp:
         data = resp.read(FETCH_MAX_BYTES + 1)
@@ -180,7 +180,7 @@ def render_story_card(item: dict[str, Any]) -> bytes:
     draw = ImageDraw.Draw(base)
 
     # Header
-    draw.text((W // 2, 200), "CS CASE BATTLE", font=font(64),
+    draw.text((W // 2, 200), "КЕЙСИК", font=font(72),
               fill=hex_rgb("#ffc233"), anchor="mm")
     draw.text((W // 2, 272), "ВЫБИЛ В @KeysikAppBot", font=font(40),
               fill=hex_rgb("#8b93a7"), anchor="mm")
@@ -254,7 +254,7 @@ def render_referral_card() -> bytes:
     base.alpha_composite(glow, (W // 2 - 540, 700 - 540))
     draw = ImageDraw.Draw(base)
 
-    draw.text((W // 2, 240), "CS CASE BATTLE", font=font(64),
+    draw.text((W // 2, 240), "КЕЙСИК", font=font(72),
               fill=hex_rgb("#ffc233"), anchor="mm")
     draw.text((W // 2, 700), "ЗОВИ ДРУЗЕЙ —", font=font(96),
               fill=hex_rgb("#ffffff"), anchor="mm")

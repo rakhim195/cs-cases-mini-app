@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>CS Case Battle — открытие кейсов</title>
+  <title>Кейсик — открытие кейсов CS:GO</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,6 +19,10 @@
         <span class="user-sub">Баланс: <b id="balance-top">…</b></span>
       </div>
     </div>
+    <div class="brand-logo" aria-label="Кейсик">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 3 6.5v11L12 22l9-4.5v-11L12 2Zm0 2.3 6.6 3.3L12 10.9 5.4 7.6 12 4.3ZM5 9.4l6 3v6.9l-6-3V9.4Zm8 9.9v-6.9l6-3v6.9l-6 3Z" fill="currentColor"/></svg>
+      <span>КЕЙСИК</span>
+    </div>
     <div class="topbar-actions">
       <button class="gift-chip" type="button" id="btn-daily" title="Ежедневный бонус">🎁</button>
       <div class="balance-pill" id="balance-pill">···</div>
@@ -27,6 +31,15 @@
 
   <main class="app">
     <section class="screen" id="screen-cases">
+      <div class="promo-banner" id="promo-banner" role="button" tabindex="0">
+        <div class="promo-shine" aria-hidden="true"></div>
+        <div class="promo-body">
+          <div class="promo-badge"><span class="promo-fire" aria-hidden="true">🔥</span> ОГРАНИЧЕННАЯ АКЦИЯ</div>
+          <div class="promo-title">Мега-Дроп недели</div>
+          <div class="promo-sub">Бесплатный кейс каждые 24 часа • +100 ₽ за друга</div>
+        </div>
+        <button class="promo-cta" type="button" id="btn-promo-claim">Забрать бонус</button>
+      </div>
       <div class="screen-head">
         <h1 class="screen-title">Кейсы</h1>
         <span class="screen-count" id="cases-count"></span>
@@ -197,17 +210,21 @@
     </div>
   </div>
 
-  <div class="modal-backdrop hidden" id="reel-modal">
+  <div class="modal-backdrop centered hidden" id="reel-modal">
     <div class="modal reel-modal">
-      <h2 class="reel-title" id="reel-title">Открываем…</h2>
+      <div class="reel-case">
+        <img class="reel-case-img" id="reel-case-img" alt="">
+        <div class="reel-case-name" id="reel-case-name"></div>
+      </div>
       <div class="reel-window" id="reel-window">
         <div class="reel-needle"></div>
         <div class="reel-track" id="reel-track"></div>
       </div>
+      <div class="reel-status" id="reel-status">Крутим…</div>
     </div>
   </div>
 
-  <div class="modal-backdrop hidden" id="result-modal">
+  <div class="modal-backdrop centered hidden" id="result-modal">
     <div class="modal result-modal">
       <h2 class="result-title">Вам выпало</h2>
       <div class="drop-card" id="drop-card"></div>
@@ -218,6 +235,7 @@
           <button class="btn-primary" type="button" id="btn-sell"></button>
           <button class="btn-ghost" type="button" id="btn-keep">Оставить</button>
         </div>
+        <button class="btn-ghost btn-again" type="button" id="btn-open-again"></button>
       </div>
     </div>
   </div>
@@ -228,7 +246,7 @@
       <h2 class="share-title">Поделиться дропом</h2>
       <div class="brag-card" id="brag-card">
         <div class="brag-header">
-          <span class="brag-brand">CS:GO Case Battle</span>
+          <span class="brag-brand">Кейсик</span>
           <span class="brag-sep">•</span>
           <span class="brag-tagline">Игра про топовые скины</span>
         </div>

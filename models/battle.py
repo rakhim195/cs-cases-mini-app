@@ -1,4 +1,4 @@
-"""1v1 case battle models."""
+"""1v1 battle models."""
 
 from __future__ import annotations
 

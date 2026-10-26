@@ -33,7 +33,7 @@
   const REEL_CARD_W = 120;
   const REEL_GAP = 10;
   const REFERRAL_LINK_TEXT = 'Заходи и забирай 25 бесплатных попыток!';
-  const BRAG_HEADER_NOTE = 'CS:GO Case Battle • Игра про топовые скины';
+  const BRAG_HEADER_NOTE = 'Кейсик • Игра про топовые скины';
   const FALLBACK_IMG =
     'data:image/svg+xml;utf8,' +
     encodeURIComponent(
@@ -308,7 +308,7 @@
     $('case-modal-sub').textContent = kase.price === 0
       ? 'Бесплатно раз в ' + (kase.cooldown_hours || 24) + ' часов'
       : kase.items.length + ' ' + plural(kase.items.length, 'предмет', 'предмета', 'предметов') +
-        ' &middot; шанс на нож';
+        ' \u00b7 шанс на нож';
     const heroImg = $('case-modal-img');
     heroImg.src = cdn(kase.image, '256fx256f');
     heroImg.onerror = () => { heroImg.onerror = null; heroImg.src = FALLBACK_IMG; };
@@ -404,9 +404,9 @@
         track.appendChild(buildReelItem(item, index === targetIndex));
       });
 
-      // Jitter up to ~±40px so the winner never lands dead-center to the
+      // Small jitter (±18px) so the winner never lands dead-center to the
       // exact pixel — the stop feels like physics, not a script.
-      const jitter = (Math.random() - 0.5) * (REEL_CARD_W * 0.66);
+      const jitter = (Math.random() - 0.5) * (REEL_CARD_W * 0.3);
       const winnerCenter =
         REEL_GAP + // track's left padding
         targetIndex * (REEL_CARD_W + REEL_GAP) + REEL_CARD_W / 2 + jitter;
@@ -437,8 +437,13 @@
     if (state.busy) return;
     state.busy = true;
     hideModal('case-modal');
+    hideModal('result-modal');
     stopCooldownTimer();
-    $('reel-title').textContent = 'Открываем: ' + kase.name;
+    const caseImg = $('reel-case-img');
+    caseImg.src = cdn(kase.image, '256fx256f');
+    caseImg.onerror = () => { caseImg.onerror = null; caseImg.src = FALLBACK_IMG; };
+    $('reel-case-name').textContent = kase.hype_title || kase.name;
+    $('reel-status').textContent = 'Крутим…';
     showIdleReel(kase);
     showModal('reel-modal');
     hapticImpact();
@@ -450,7 +455,7 @@
       await spinReel(result.reel, result.winner_index);
       hapticSuccess();
       animateBalance(result.new_balance);
-      showResult(result.winner);
+      showResult(result.winner, kase);
     } catch (err) {
       hideModal('reel-modal');
       hapticError();
@@ -506,7 +511,7 @@
     requestAnimationFrame(step);
   }
 
-  function showResult(winner) {
+  function showResult(winner, kase) {
     hideModal('reel-modal');
     state.lastWinner = winner;
     const color = RARITY_COLORS[winner.rarity] || '#8b93a7';
@@ -560,6 +565,21 @@
       toast(winner.name + ' — в коллекцию', 'success');
       refreshUser();
     };
+
+    // Chain-opening: a one-tap "Открыть ещё" straight from the drop card.
+    const again = $('btn-open-again');
+    if (kase && kase.price > 0) {
+      again.classList.remove('hidden');
+      const affordable = state.user && state.user.balance >= kase.price;
+      again.disabled = !affordable;
+      again.textContent = affordable
+        ? 'Открыть ещё за ' + money(kase.price)
+        : 'Не хватает ' + money(kase.price - (state.user ? state.user.balance : 0));
+      again.onclick = () => { if (!again.disabled) openCase(kase); };
+    } else {
+      again.classList.add('hidden');
+      again.onclick = null;
+    }
     showModal('result-modal');
   }
 
@@ -634,7 +654,7 @@
       const dataUrl = await buildStoryCard(item);
       const link = document.createElement('a');
       link.href = dataUrl;
-      link.download = 'case-battle-' + (item.skin_id || 'drop') + '.png';
+      link.download = 'keysik-' + (item.skin_id || 'drop') + '.png';
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -707,7 +727,7 @@
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffc233';
       ctx.font = storyFont(46);
-      ctx.fillText('CS CASE BATTLE', W / 2, 150);
+      ctx.fillText('КЕЙСИК', W / 2, 150);
       ctx.fillStyle = '#8b93a7';
       ctx.font = '600 30px Inter, sans-serif';
       ctx.fillText('выбил в @KeysikAppBot', W / 2, 200);
@@ -1341,6 +1361,21 @@
   });
   $('btn-daily-claim').addEventListener('click', claimDaily);
 
+  /* ---------- Promo banner (акция) ---------- */
+
+  function openPromoBonus() {
+    hapticImpact();
+    openDailyModal(true);
+  }
+  $('btn-promo-claim').addEventListener('click', (event) => {
+    event.stopPropagation();
+    openPromoBonus();
+  });
+  $('promo-banner').addEventListener('click', openPromoBonus);
+  $('promo-banner').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') openPromoBonus();
+  });
+
   /* ---------- Friends (referrals) screen ---------- */
 
   async function initFriendsScreen() {
@@ -1432,7 +1467,7 @@
     window.open(storyUrl, '_blank');
   });
 
-  /* ---------- Case battles (1v1 / bot duels) ---------- */
+  /* ---------- 1v1 battles (lobbies / bot duels) ---------- */
 
   const battleState = {
     caseId: null,
