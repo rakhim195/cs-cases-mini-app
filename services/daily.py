@@ -12,9 +12,9 @@ from services import rng
 from services.catalog import get_case
 
 CLAIM_COOLDOWN = timedelta(hours=24)
-STREAK_GRACE = timedelta(hours=12)  # claim window before the streak resets
+STREAK_GRACE = timedelta(hours=24)  # claim window 24-48h keeps the streak
 
-# Day 1..7; after day 7 the cycle restarts at day 1.
+# Day 1..7; after day 7 every claim stays on the day-7 reward.
 DAILY_REWARDS: tuple[dict[str, Any], ...] = (
     {"day": 1, "type": "coins", "amount": 50.0, "label": "50 ₽"},
     {"day": 2, "type": "coins", "amount": 75.0, "label": "75 ₽"},
@@ -22,7 +22,7 @@ DAILY_REWARDS: tuple[dict[str, Any], ...] = (
     {"day": 4, "type": "coins", "amount": 150.0, "label": "150 ₽"},
     {"day": 5, "type": "coins", "amount": 200.0, "label": "200 ₽"},
     {"day": 6, "type": "coins", "amount": 300.0, "label": "300 ₽"},
-    {"day": 7, "type": "case", "case_id": "gloves_knives", "label": "Кейс с ножом"},
+    {"day": 7, "type": "case", "case_id": "gloves_kush", "label": "Перчаточный куш"},
 )
 
 
@@ -45,10 +45,10 @@ def _as_utc(value: datetime) -> datetime:
 
 
 def next_reward_day(streak: DailyStreak | None) -> int:
-    """The day number the NEXT claim lands on (1..7)."""
+    """The day number the NEXT claim lands on (1..7; 7 repeats at the top)."""
     if streak is None:
         return 1
-    return streak.current_streak % 7 + 1
+    return min(streak.current_streak + 1, 7)
 
 
 async def daily_status(session: AsyncSession, user_id: int) -> dict[str, Any]:
@@ -60,15 +60,19 @@ async def daily_status(session: AsyncSession, user_id: int) -> dict[str, Any]:
     now = _utcnow()
     can_claim = True
     next_claim_at: datetime | None = None
+    seconds_until_next: int | None = None
     if streak is not None:
         next_claim_at = _as_utc(streak.last_claimed_at) + CLAIM_COOLDOWN
         can_claim = now >= next_claim_at
+        if not can_claim:
+            seconds_until_next = max(1, int((next_claim_at - now).total_seconds()))
     await session.commit()
     return {
         "streak": streak.current_streak if streak else 0,
         "day": next_reward_day(streak),
         "can_claim": can_claim,
         "next_claim_at": next_claim_at.isoformat() if next_claim_at else None,
+        "seconds_until_next": seconds_until_next,
         "rewards": [dict(r) for r in DAILY_REWARDS],
         "balance": user.balance,
     }
@@ -87,9 +91,9 @@ async def claim_daily(session: AsyncSession, user_id: int) -> dict[str, Any]:
         available_at = last + CLAIM_COOLDOWN
         if now < available_at:
             raise DailyCooldownError(available_at)
-        # Inside the 12h grace window the streak continues; past it, reset.
+        # Inside the 48h window the streak continues; past it, reset.
         if now - last <= CLAIM_COOLDOWN + STREAK_GRACE:
-            streak.current_streak = streak.current_streak % 7 + 1
+            streak.current_streak = min(streak.current_streak + 1, 7)
         else:
             streak.current_streak = 1
         streak.last_claimed_at = now

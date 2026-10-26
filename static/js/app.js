@@ -50,6 +50,9 @@
 
   const $ = (id) => document.getElementById(id);
 
+  function hapticLight() {
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+  }
   function hapticImpact() {
     if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
   }
@@ -203,6 +206,7 @@
     $('screen-cases').classList.toggle('hidden', view !== 'cases');
     $('screen-battle').classList.toggle('hidden', view !== 'battle');
     $('screen-upgrade').classList.toggle('hidden', view !== 'upgrade');
+    $('screen-friends').classList.toggle('hidden', view !== 'friends');
     $('screen-collection').classList.toggle('hidden', view !== 'collection');
     document.querySelectorAll('.tab').forEach((tab) => {
       tab.classList.toggle('active', tab.getAttribute('data-view') === view);
@@ -211,11 +215,12 @@
     if (view === 'collection') refreshInventory();
     if (view === 'upgrade') initUpgradeScreen();
     if (view === 'battle') initBattleScreen();
+    if (view === 'friends') initFriendsScreen();
   }
 
   document.querySelectorAll('.tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      hapticImpact();
+      hapticLight();
       switchView(tab.getAttribute('data-view'));
     });
   });
@@ -260,7 +265,7 @@
       price.textContent = kase.price === 0 ? 'БЕСПЛАТНО • 24Ч' : money(kase.price);
       card.appendChild(price);
 
-      card.addEventListener('click', () => openCaseModal(kase));
+      card.addEventListener('click', () => { hapticLight(); openCaseModal(kase); });
       grid.appendChild(card);
     });
   }
@@ -578,8 +583,11 @@
     $('brag-text').textContent = bragText(winner);
     $('brag-rarity').textContent = rarityRuLabel(winner);
     const img = $('brag-img');
-    img.src = cdn(winner.image, '360fx360f');
-    img.onerror = () => { img.onerror = null; img.src = FALLBACK_IMG; };
+    // Preview the exact server-rendered story card.
+    img.src = winner.item_id
+      ? location.origin + '/api/story-card/' + winner.item_id + '.png'
+      : cdn(winner.image, '360fx360f');
+    img.onerror = () => { img.onerror = null; img.src = cdn(winner.image, '360fx360f'); };
     showModal('share-modal');
   }
 
@@ -1054,9 +1062,16 @@
     }
   }
 
+  // The winning arc is centered on the 6 o'clock position: its start sits
+  // 180*(1-chance) degrees clockwise of the arc center (bottom = 180deg).
+  function wheelArcShift(chance) {
+    return 180 - chance * 180;
+  }
+
   function setWheelArc(chance) {
     const C = 2 * Math.PI * UPGRADE_WHEEL_R;
     $('upg-arc').style.strokeDasharray = (chance * C) + ' ' + C;
+    $('upg-arc').style.transform = 'rotate(' + wheelArcShift(chance) + 'deg)';
   }
 
   function wheelStatus(main, sub) {
@@ -1137,11 +1152,12 @@
     showModal(isInv ? 'pick-inv-modal' : 'pick-target-modal');
   }
 
-  function animatePointerTo(degree) {
+  function animatePointerTo(degree, chance) {
     return new Promise((resolve) => {
       const pointer = $('upg-pointer');
       upgradeState.pointerTurns += 5;
-      const final = upgradeState.pointerTurns * 360 + degree;
+      // Land inside the bottom-centered arc: visual angle = arc start + roll.
+      const final = upgradeState.pointerTurns * 360 + wheelArcShift(chance) + degree;
       pointer.style.transition = 'none';
       pointer.style.transform = 'rotate(' + upgradeState.pointerAngle + 'deg)';
       void pointer.offsetWidth;
@@ -1205,7 +1221,7 @@
         }),
       });
       setWheelArc(result.chance);
-      await animatePointerTo(result.roll_degree);
+      await animatePointerTo(result.roll_degree, result.chance);
       applyUpgradeResult(result);
     } catch (err) {
       hapticError();
@@ -1324,6 +1340,97 @@
     openDailyModal(true);
   });
   $('btn-daily-claim').addEventListener('click', claimDaily);
+
+  /* ---------- Friends (referrals) screen ---------- */
+
+  async function initFriendsScreen() {
+    try {
+      const data = await api('/api/referrals/' + USER_ID);
+      renderFriends(data);
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  function renderFriends(data) {
+    $('friends-count').textContent = data.total_friends + ' ' +
+      plural(data.total_friends, 'друг', 'друга', 'друзей');
+    $('friends-list-head').textContent = 'Твои друзья (' + data.total_friends + ')';
+    const earned = $('friends-earned');
+    earned.classList.toggle('hidden', !data.total_friends);
+    if (data.total_friends) {
+      earned.textContent = 'Друзья принесли тебе: +' + money(data.total_earned);
+    }
+
+    const listEl = $('friends-list');
+    listEl.innerHTML = '';
+    $('friends-empty').classList.toggle('hidden', data.total_friends > 0);
+    data.friends.forEach((friend) => {
+      const row = document.createElement('div');
+      row.className = 'friend-row';
+      const avatar = document.createElement('div');
+      avatar.className = 'friend-avatar';
+      avatar.textContent = String(friend.name || '?').charAt(0).toUpperCase();
+      const info = document.createElement('div');
+      info.className = 'fr-info';
+      const name = document.createElement('div');
+      name.className = 'fr-name';
+      name.textContent = friend.name;
+      const meta = document.createElement('div');
+      meta.className = 'fr-meta';
+      const joined = friend.joined_at
+        ? new Date(friend.joined_at).toLocaleDateString('ru-RU')
+        : '';
+      meta.textContent = joined + ' • ' + friend.drops + ' ' +
+        plural(friend.drops, 'дроп', 'дропа', 'дропов');
+      info.appendChild(name);
+      info.appendChild(meta);
+      const tag = document.createElement('div');
+      tag.className = 'fr-tag';
+      tag.textContent = 'Активен • Принёс +' + Math.round(friend.brought) + ' ₽';
+      row.appendChild(avatar);
+      row.appendChild(info);
+      row.appendChild(tag);
+      listEl.appendChild(row);
+    });
+  }
+
+  function friendsInviteText() {
+    return 'Друг, забирай 100 ₽ бонусом и открывай кейсы со мной! Я уже собрал коллекцию скинов CS2.';
+  }
+
+  $('btn-friends-invite').addEventListener('click', () => {
+    hapticLight();
+    const url = 'https://t.me/share/url?url=' + encodeURIComponent(referralLink()) +
+      '&text=' + encodeURIComponent(friendsInviteText());
+    if (tg && typeof tg.openTelegramLink === 'function') tg.openTelegramLink(url);
+    else window.open(url, '_blank');
+  });
+
+  $('btn-friends-copy').addEventListener('click', async () => {
+    hapticLight();
+    try {
+      await navigator.clipboard.writeText(referralLink());
+      toast('Ссылка скопирована!', 'success');
+    } catch (err) {
+      toast('Скопируй вручную: ' + referralLink(), 'success');
+    }
+  });
+
+  $('btn-friends-story').addEventListener('click', () => {
+    hapticLight();
+    const storyUrl = location.origin + '/api/story-referral.png';
+    if (tg && typeof tg.shareToStory === 'function') {
+      try {
+        tg.shareToStory(storyUrl, {
+          text: friendsInviteText(),
+          widget_link: { url: referralLink(), name: 'Открыть кейс' },
+        });
+        return;
+      } catch (err) { /* fall through */ }
+    }
+    window.open(storyUrl, '_blank');
+  });
 
   /* ---------- Case battles (1v1 / bot duels) ---------- */
 
@@ -1572,8 +1679,9 @@
         .classList.add(viewerWon ? 'win' : 'lose');
       (viewerIsP1 ? $('arena-col-p2') : $('arena-col-p1'))
         .classList.add(viewerWon ? 'lose' : 'win');
+      if (viewerWon) hapticSuccess();
+      else hapticError();
     }
-    hapticSuccess();
     await sleep(900);
     hideModal('battle-arena-modal');
     showBattleResult(statePayload, viewerId, viewerIsP1, viewerWon, draw);

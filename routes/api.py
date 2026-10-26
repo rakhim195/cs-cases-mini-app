@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.config import settings
 from core.database import get_session
 from models import InventoryItem
-from services import battle, daily, game, storycard, upgrade
+from services import battle, daily, game, referrals, storycard, upgrade
 from services.catalog import CaseNotFoundError, case_public, list_cases
 
 router = APIRouter(prefix="/api", tags=["gameplay"])
@@ -266,6 +266,32 @@ async def get_story_card(
         media_type="image/png",
         headers={"Cache-Control": "public, max-age=3600"},
     )
+
+
+@router.get("/story-referral.png")
+async def get_story_referral() -> StreamingResponse:
+    """1080x1920 invite banner for the friends story share."""
+    try:
+        png = await asyncio.to_thread(storycard.render_referral_card)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Не удалось собрать карточку") from None
+    return StreamingResponse(
+        io.BytesIO(png),
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+@router.get("/referrals/{user_id}")
+async def get_referrals(
+    user_id: int, session: AsyncSession = Depends(get_session)
+) -> dict:
+    """Friends invited by the user, their earnings and totals."""
+    from services.game import get_or_create_user
+
+    await get_or_create_user(session, user_id)
+    await session.commit()
+    return await referrals.referral_dashboard(session, user_id)
 
 
 @router.get("/daily/status/{user_id}")

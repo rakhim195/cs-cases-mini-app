@@ -164,7 +164,7 @@ def render_story_card(item: dict[str, Any]) -> bytes:
     color = RARITY_COLORS.get(item["rarity"], "#8b93a7")
     price_rub = int(round(float(item["price"])))
 
-    base = _vertical_gradient("#0d1117", "#161b22").convert("RGBA")
+    base = _vertical_gradient("#0b0e14", "#121824").convert("RGBA")
     glow = _radial_glow(color, 540, 110)
     base.alpha_composite(glow, (W // 2 - 540, 750 - 540))
 
@@ -189,7 +189,7 @@ def render_story_card(item: dict[str, Any]) -> bytes:
         _draw_vector_fallback(draw, W // 2, 760, color)
 
     # Name (auto-shrink), rarity, wear + StatTrak
-    name = ("StatTrak™ " if item["is_stat_trak"] else "") + item["name"]
+    name = item["name"]
     size = 58
     name_font = font(size)
     while draw.textlength(name, font=name_font) > W - 90 and size > 26:
@@ -199,17 +199,36 @@ def render_story_card(item: dict[str, Any]) -> bytes:
               fill=hex_rgb("#ffffff"), anchor="mm")
     draw.text((W // 2, 1186), item["rarity"].upper(), font=font(38),
               fill=hex_rgb(color), anchor="mm")
-    wear_line = WEAR_RU.get(item["wear"], item["wear"])
-    wear_line += " • float " + _derived_float(
+
+    float_text = _derived_float(
         item["item_id"], item["wear"],
         float(skin.get("min_float", 0.0)), float(skin.get("max_float", 1.0)),
     )
-    draw.text((W // 2, 1246), wear_line, font=font(34, bold=False),
+    # Wear badge (pill) + StatTrak badge side by side under the rarity.
+    wear_label = f"{WEAR_RU.get(item['wear'], item['wear'])} • {float_text}"
+    badge_font = font(30)
+    wear_w = draw.textlength(wear_label, font=badge_font)
+    badge_y = 1250
+    draw.rounded_rectangle(
+        (W // 2 - wear_w / 2 - 26, badge_y - 32, W // 2 + wear_w / 2 + 26, badge_y + 32),
+        radius=32, outline=hex_rgb("#8b93a7"), width=2,
+    )
+    draw.text((W // 2, badge_y), wear_label, font=badge_font,
               fill=hex_rgb("#8b93a7"), anchor="mm")
+    if item["is_stat_trak"]:
+        st_label = "StatTrak™"
+        st_w = draw.textlength(st_label, font=badge_font)
+        st_y = badge_y + 86
+        draw.rounded_rectangle(
+            (W // 2 - st_w / 2 - 26, st_y - 32, W // 2 + st_w / 2 + 26, st_y + 32),
+            radius=32, fill=hex_rgba("#ff9d2e", 60), outline=hex_rgb("#ff9d2e"), width=2,
+        )
+        draw.text((W // 2, st_y), st_label, font=badge_font,
+                  fill=hex_rgb("#ff9d2e"), anchor="mm")
 
     # Big gold price
-    draw.text((W // 2, 1382), f"{price_rub:,} ₽".replace(",", " "),
-              font=font(110), fill=hex_rgb("#fbbf24"), anchor="mm")
+    draw.text((W // 2, 1430), f"{price_rub:,} ₽".replace(",", " "),
+              font=font(110), fill=hex_rgb("#f59e0b"), anchor="mm")
 
     # Bottom CTA banner with the bot link
     banner_y = 1600
@@ -222,6 +241,40 @@ def render_story_card(item: dict[str, Any]) -> bytes:
               fill=hex_rgb("#ffc233"), anchor="mm")
     draw.text((W // 2, 1782), "t.me/KeysikAppBot", font=font(40, bold=False),
               fill=hex_rgb("#8b93a7"), anchor="mm")
+
+    out = io.BytesIO()
+    base.convert("RGB").save(out, format="PNG", optimize=True)
+    return out.getvalue()
+
+
+def render_referral_card() -> bytes:
+    """1080x1920 invite banner for the friends tab story share."""
+    base = _vertical_gradient("#0b0e14", "#121824").convert("RGBA")
+    glow = _radial_glow("#ffc233", 540, 90)
+    base.alpha_composite(glow, (W // 2 - 540, 700 - 540))
+    draw = ImageDraw.Draw(base)
+
+    draw.text((W // 2, 240), "CS CASE BATTLE", font=font(64),
+              fill=hex_rgb("#ffc233"), anchor="mm")
+    draw.text((W // 2, 700), "ЗОВИ ДРУЗЕЙ —", font=font(96),
+              fill=hex_rgb("#ffffff"), anchor="mm")
+    draw.text((W // 2, 830), "ПОЛУЧАЙ НАГРАДЫ", font=font(96),
+              fill=hex_rgb("#ffc233"), anchor="mm")
+    draw.text((W // 2, 990), "Другу сразу +100 ₽ на баланс",
+              font=font(44, bold=False), fill=hex_rgb("#8b93a7"), anchor="mm")
+    draw.text((W // 2, 1060), "Тебе — 5% с каждого его кейса",
+              font=font(44, bold=False), fill=hex_rgb("#8b93a7"), anchor="mm")
+
+    banner_y = 1450
+    for y in range(banner_y, H):
+        k = (y - banner_y) / (H - banner_y)
+        alpha = int(26 + 40 * k)
+        draw.line([(0, y), (W, y)], fill=hex_rgba("#ffc233", alpha))
+    draw.line([(0, banner_y), (W, banner_y)], fill=hex_rgba("#ffc233", 102), width=3)
+    draw.text((W // 2, 1560), "ЖМИ И ОТКРЫВАЙ КЕЙСЫ", font=font(52),
+              fill=hex_rgb("#ffc233"), anchor="mm")
+    draw.text((W // 2, 1650), "t.me/KeysikAppBot", font=font(48, bold=False),
+              fill=hex_rgb("#ffffff"), anchor="mm")
 
     out = io.BytesIO()
     base.convert("RGB").save(out, format="PNG", optimize=True)

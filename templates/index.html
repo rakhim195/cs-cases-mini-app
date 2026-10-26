@@ -109,6 +109,31 @@
       </div>
     </section>
 
+    <section class="screen hidden" id="screen-friends">
+      <div class="screen-head">
+        <h1 class="screen-title">Друзья</h1>
+        <span class="screen-count" id="friends-count"></span>
+      </div>
+      <div class="friends-hero">
+        <div class="fh-badge">ПРИГЛАШАЙ ДРУЗЕЙ</div>
+        <div class="fh-title">Зови друзей — получай награды</div>
+        <div class="fh-desc">Друг сразу получит 100 ₽ на баланс. А ты — 5% с каждого его открытия кейса!</div>
+        <button class="btn-primary btn-block" type="button" id="btn-friends-invite">Отправить другу</button>
+        <div class="fh-row">
+          <button class="btn-ghost" type="button" id="btn-friends-copy">Скопировать ссылку</button>
+          <button class="btn-ghost" type="button" id="btn-friends-story">В историю</button>
+        </div>
+      </div>
+      <div class="friends-earned hidden" id="friends-earned"></div>
+      <div class="battle-lobby-head" id="friends-list-head">Твои друзья (0)</div>
+      <div class="friends-list" id="friends-list"></div>
+      <div class="empty-state hidden" id="friends-empty">
+        <div class="empty-icon">👥</div>
+        <div class="empty-title">Пока никого</div>
+        <div class="empty-sub">Поделись ссылкой первым!</div>
+      </div>
+    </section>
+
     <section class="screen hidden" id="screen-collection">
       <div class="screen-head">
         <h1 class="screen-title">Моя коллекция</h1>
@@ -144,9 +169,13 @@
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4.5 10.5h4.4V21h6.2V10.5h4.4L12 3Z" fill="currentColor"/></svg>
       <span>Апгрейд</span>
     </button>
+    <button class="tab" type="button" data-view="friends">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M9 11a4 4 0 1 0-4 4h1v3l3-3h6a4 4 0 0 0 0-8h-1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Друзья</span>
+    </button>
     <button class="tab" type="button" data-view="collection">
       <svg viewBox="0 0 24 24" fill="none"><path d="M8 7V6a4 4 0 1 1 8 0v1h2.5A1.5 1.5 0 0 1 20 8.5v10A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-10A1.5 1.5 0 0 1 5.5 7H8Zm2 0h4V6a2 2 0 1 0-4 0v1Z" fill="currentColor"/></svg>
-      <span>Моя коллекция</span>
+      <span>Коллекция</span>
       <b class="tab-badge" id="tab-inv-badge">0</b>
     </button>
   </nav>

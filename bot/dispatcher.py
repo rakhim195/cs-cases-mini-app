@@ -31,9 +31,11 @@ WELCOME_TEXT = (
     "Жми кнопку и погнали! 🔥"
 )
 
+REFERRAL_WELCOME_BONUS = 100.0
+
 REFERRAL_NOTE = (
-    "\n\n💛 Ты зашёл по ссылке друга — он теперь получает "
-    "<b>5% с каждого твоего дропа</b>."
+    "\n\n💛 Ты зашёл по ссылке друга — тебе <b>+100 ₽</b> на баланс, "
+    "а он теперь получает <b>5% с каждого твоего дропа</b>."
 )
 
 
@@ -73,6 +75,8 @@ async def _persist_user_and_referral(
             and user.referrer_id is None
         ):
             user.referrer_id = referrer_id
+            # Welcome bonus for the invited friend, credited once.
+            user.balance = round(user.balance + REFERRAL_WELCOME_BONUS, 2)
             applied = True
         await session.commit()
     return applied
